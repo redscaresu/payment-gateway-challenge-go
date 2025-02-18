@@ -45,6 +45,8 @@ func (h *PaymentsHandler) GetHandler() http.HandlerFunc {
 }
 
 func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
-	//TODO
-	return nil
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set(contentTypeHeader, jsonContentType)
+		w.WriteHeader(http.StatusNotImplemented)
+	}
 }
