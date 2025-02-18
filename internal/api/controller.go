@@ -38,3 +38,9 @@ func (a *Api) GetPaymentHandler() http.HandlerFunc {
 
 	return h.GetHandler()
 }
+
+func (a *Api) PostPaymentHandler() http.HandlerFunc {
+	h := handlers.NewPaymentsHandler(a.paymentsRepo)
+
+	return h.PostHandler()
+}
