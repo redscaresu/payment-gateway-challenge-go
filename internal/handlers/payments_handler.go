@@ -63,7 +63,7 @@ func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 			return
 		}
 
-		domainResponse, err := ph.domain.PostPayment(&paymentRequest)
+		domainResponse, err := ph.domain.PostPaymentService.PostPayment(&paymentRequest)
 		if err != nil {
 			log.Printf("Error processing payment: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -75,6 +75,5 @@ func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 		if err := json.NewEncoder(w).Encode(domainResponse); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
-
 	}
 }

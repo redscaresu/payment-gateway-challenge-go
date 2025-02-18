@@ -6,15 +6,16 @@ import (
 	"github.com/google/uuid"
 )
 
-// PostPayment is a domain service that processes a payment request.
-type PostPayment interface {
+// PostPaymentService is a domain service that processes a payment request.
+type PostPaymentService interface {
 	// PostPayment processes a payment request and returns a payment response.
-	PostPayment(request models.PostPaymentRequest) (models.PostPaymentResponse, error)
+	PostPayment(request *models.PostPaymentRequest) (*models.PostPaymentResponse, error)
 }
 
 // Domain is a domain service that processes a payment request.
 type Domain struct {
 	repo *repository.PaymentsRepository
+	PostPaymentService
 }
 
 // NewDomain creates a new PostPaymentService.
