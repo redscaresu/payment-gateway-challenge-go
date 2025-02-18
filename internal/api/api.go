@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
@@ -15,11 +16,14 @@ import (
 type Api struct {
 	router       *chi.Mux
 	paymentsRepo *repository.PaymentsRepository
+	domain       *domain.Domain
 }
 
 func New() *Api {
 	a := &Api{}
-	a.paymentsRepo = repository.NewPaymentsRepository()
+	repo := repository.NewPaymentsRepository()
+	a.paymentsRepo = repo
+	a.domain = domain.NewDomain(repo)
 	a.setupRouter()
 
 	return a

@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
+	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain"
+	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
 	"github.com/go-chi/chi"
 )
@@ -15,11 +18,13 @@ const (
 
 type PaymentsHandler struct {
 	storage *repository.PaymentsRepository
+	domain  *domain.Domain
 }
 
-func NewPaymentsHandler(storage *repository.PaymentsRepository) *PaymentsHandler {
+func NewPaymentsHandler(storage *repository.PaymentsRepository, domain *domain.Domain) *PaymentsHandler {
 	return &PaymentsHandler{
 		storage: storage,
+		domain:  domain,
 	}
 }
 
@@ -46,7 +51,30 @@ func (h *PaymentsHandler) GetHandler() http.HandlerFunc {
 
 func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Body == nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		var paymentRequest models.PostPaymentRequest
+		if err := json.NewDecoder(r.Body).Decode(&paymentRequest); err != nil {
+			log.Printf("Error decoding request body: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		domainResponse, err := ph.domain.PostPayment(&paymentRequest)
+		if err != nil {
+			log.Printf("Error processing payment: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set(contentTypeHeader, jsonContentType)
-		w.WriteHeader(http.StatusNotImplemented)
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(domainResponse); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+
 	}
 }

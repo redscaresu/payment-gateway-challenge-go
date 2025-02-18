@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
 	"github.com/go-chi/chi"
@@ -26,7 +28,9 @@ func TestGetPaymentHandler(t *testing.T) {
 	ps := repository.NewPaymentsRepository()
 	ps.AddPayment(expectedPayment)
 
-	payments := NewPaymentsHandler(ps)
+	domain := domain.NewDomain(ps)
+
+	payments := NewPaymentsHandler(ps, domain)
 
 	r := chi.NewRouter()
 	r.Get("/api/payments/{id}", payments.GetHandler())
@@ -76,6 +80,47 @@ func TestGetPaymentHandler(t *testing.T) {
 		assert.Equal(t, w.Code, http.StatusNotFound)
 	})
 	t.Run("postPayment", func(t *testing.T) {
+
+		// Arrange
+		postPayment := models.PostPaymentRequest{
+			CardNumberLastFour: 8877,
+			ExpiryMonth:        4,
+			ExpiryYear:         2025,
+			Currency:           "GBP",
+			Amount:             100,
+			Cvv:                123,
+		}
+
+		body, err := json.Marshal(postPayment)
+		require.NoError(t, err)
+
+		// Act
+		req, err := http.NewRequest("POST", "/api/payments", bytes.NewBuffer(body))
+		require.NoError(t, err)
+
+		// Create a new HTTP request recorder for recording the response
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		// Check the HTTP status code in the response
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response models.PostPaymentResponse
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+
+		// Assert
+
+		assert.Equal(t, postPayment.CardNumberLastFour, response.CardNumberLastFour)
+		assert.Equal(t, postPayment.ExpiryMonth, response.ExpiryMonth)
+		assert.Equal(t, postPayment.ExpiryYear, response.ExpiryYear)
+		assert.Equal(t, postPayment.Currency, response.Currency)
+		assert.Equal(t, postPayment.Amount, response.Amount)
+		assert.Equal(t, "test-successful-status", response.PaymentStatus)
+
+	})
+	t.Run("postPaymentNoBody", func(t *testing.T) {
 		// Create a new HTTP request for testing with a non-existing payment ID
 		req, err := http.NewRequest("POST", "/api/payments", nil)
 		require.NoError(t, err)
@@ -86,6 +131,6 @@ func TestGetPaymentHandler(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		// Check the HTTP status code in the response
-		assert.Equal(t, http.StatusNotImplemented, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 }
