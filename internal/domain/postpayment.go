@@ -72,7 +72,14 @@ func (p *PaymentServiceImpl) PostPayment(request *models.PostPaymentHandlerReque
 		}, errors.New("invalid amount")
 	}
 
-	cvv := strconv.Itoa(request.Cvv)
+	cvv, err := validateCVV(request.Cvv)
+	if err != nil {
+		return &models.PostPaymentResponse{
+			Id:            uuid,
+			PaymentStatus: "declined",
+		}, errors.New("invalid cvv")
+	}
+
 	cardNumber := strconv.Itoa(request.CardNumber)
 
 	PostPaymentBankRequest := &models.PostPaymentBankRequest{
@@ -170,4 +177,12 @@ func validateAmount(amount int) (int, error) {
 
 	amount = amount * 100
 	return amount, nil
+}
+
+func validateCVV(cvv int) (string, error) {
+	if cvv < 100 || cvv > 9999 {
+		return "", errors.New("invalid cvv")
+	}
+
+	return strconv.Itoa(cvv), nil
 }
