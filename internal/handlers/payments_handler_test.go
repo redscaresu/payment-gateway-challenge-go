@@ -202,6 +202,36 @@ func TestPostPaymentHandler_NoBody(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
+func TestPostPaymentHandler_InvalidJson(t *testing.T) {
+
+	payments := NewPaymentsHandler(nil, nil)
+
+	r := chi.NewRouter()
+	r.Get("/api/payments/{id}", payments.GetHandler())
+	r.Post("/api/payments", payments.PostHandler())
+
+	httpServer := &http.Server{
+		Addr:    ":8091",
+		Handler: r,
+	}
+
+	go func() error {
+		return httpServer.ListenAndServe()
+	}()
+
+	// Create a new HTTP request for testing with a non-existing payment ID
+	req, err := http.NewRequest("POST", "/api/payments", bytes.NewBuffer([]byte("invalid json")))
+	require.NoError(t, err)
+
+	// Create a new HTTP request recorder for recording the response
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	// Check the HTTP status code in the response
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
 func getLastFourCharacters(t *testing.T, i int) string {
 	t.Helper()
 
