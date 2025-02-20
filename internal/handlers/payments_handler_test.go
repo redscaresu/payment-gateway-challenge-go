@@ -12,6 +12,7 @@ import (
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
 	"github.com/go-chi/chi"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -30,7 +31,7 @@ func TestGetPaymentHandler(t *testing.T) {
 	ps := repository.NewPaymentsRepository()
 	ps.AddPayment(expectedPayment)
 
-	domain := domain.NewDomain(ps)
+	domain := domain.NewDomain(ps, nil)
 
 	payments := NewPaymentsHandler(ps, domain)
 
@@ -131,8 +132,9 @@ func TestPostPaymentHandler(t *testing.T) {
 	body, err := json.Marshal(postPayment)
 	require.NoError(t, err)
 
+	postPaymentResponseID := uuid.New().String()
 	mockDomain.PostPaymentService.(*mocks.MockPostPaymentService).EXPECT().PostPayment(postPayment).Return(&models.PostPaymentResponse{
-		Id:                 "test-id",
+		Id:                 postPaymentResponseID,
 		PaymentStatus:      "test-successful-status",
 		CardNumberLastFour: 8877,
 		ExpiryMonth:        4,
@@ -158,8 +160,7 @@ func TestPostPaymentHandler(t *testing.T) {
 	require.NoError(t, err)
 
 	// Assert
-
-	assert.Equal(t, "test-id", response.Id)
+	assert.Equal(t, postPaymentResponseID, response.Id)
 	assert.Equal(t, postPayment.CardNumberLastFour, response.CardNumberLastFour)
 	assert.Equal(t, postPayment.ExpiryMonth, response.ExpiryMonth)
 	assert.Equal(t, postPayment.ExpiryYear, response.ExpiryYear)

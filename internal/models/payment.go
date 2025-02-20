@@ -30,14 +30,14 @@ type GetPaymentResponse struct {
 }
 
 type PostPaymentBankRequest struct {
-	CardNumber int `json:"card_number"`
-	ExpiryDate int `json:"expiry_date"`
-	Currency   int `json:"currency"`
-	Amount     int `json:"amount"`
-	CVV        int `json:"cvv"`
+	CardNumber string `json:"card_number"`
+	ExpiryDate string `json:"expiry_date"`
+	Currency   string `json:"currency"`
+	Amount     int    `json:"amount"`
+	CVV        string `json:"cvv"`
 }
 
 type PostPaymentBankResponse struct {
-	Authorised bool   `json:"authorised"`
-	Message    string `json:"message"`
+	Authorised        bool   `json:"authorised"`
+	AuthorizationCode string `json:"authorization_code"`
 }

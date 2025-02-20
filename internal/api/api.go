@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/client"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
 	"github.com/go-chi/chi/middleware"
@@ -23,7 +24,8 @@ func New() *Api {
 	a := &Api{}
 	repo := repository.NewPaymentsRepository()
 	a.paymentsRepo = repo
-	a.domain = domain.NewDomain(repo)
+	client := client.NewClient("localhost:8080", 5)
+	a.domain = domain.NewDomain(repo, client)
 	a.setupRouter()
 
 	return a
