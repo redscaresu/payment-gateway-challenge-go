@@ -56,6 +56,22 @@ func (p *PaymentServiceImpl) PostPayment(request *models.PostPaymentHandlerReque
 		}, errors.New("invalid expiry date")
 	}
 
+	if !validateCurrencyISO(request.Currency) {
+		return &models.PostPaymentResponse{
+			Id:            uuid,
+			PaymentStatus: "declined",
+		}, errors.New("invalid currency")
+	}
+
+	//convert dollars to cents
+	totalAmount, err := validateAmount(request.Amount)
+	if err != nil {
+		return &models.PostPaymentResponse{
+			Id:            uuid,
+			PaymentStatus: "declined",
+		}, errors.New("invalid amount")
+	}
+
 	cvv := strconv.Itoa(request.Cvv)
 	cardNumber := strconv.Itoa(request.CardNumber)
 
@@ -63,7 +79,7 @@ func (p *PaymentServiceImpl) PostPayment(request *models.PostPaymentHandlerReque
 		CardNumber: cardNumber,
 		ExpiryDate: expiryDate,
 		Currency:   request.Currency,
-		Amount:     request.Amount,
+		Amount:     totalAmount,
 		CVV:        cvv,
 	}
 
@@ -134,5 +150,24 @@ func validateExpiryDate(requestMonth, requestYear int) (string, error) {
 	}
 
 	return strconv.Itoa(requestMonth) + "/" + strconv.Itoa(requestYear), nil
+}
 
+var validCurrencyCodes = map[string]bool{
+	"USD": true,
+	"EUR": true,
+	"GBP": true,
+}
+
+func validateCurrencyISO(currency string) bool {
+	_, isValid := validCurrencyCodes[currency]
+	return isValid
+}
+
+func validateAmount(amount int) (int, error) {
+	if amount < 0 {
+		return 0, errors.New("invalid amount")
+	}
+
+	amount = amount * 100
+	return amount, nil
 }

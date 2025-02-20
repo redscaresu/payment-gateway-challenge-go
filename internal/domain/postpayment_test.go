@@ -32,7 +32,7 @@ func TestPostPayment_Authorized(t *testing.T) {
 		CardNumber: "2222405343248877",
 		ExpiryDate: "4/2025",
 		Currency:   "GBP",
-		Amount:     100,
+		Amount:     10000,
 		CVV:        "123",
 	})).Return((&models.PostPaymentBankResponse{
 		Authorised:        true,
@@ -127,6 +127,37 @@ func TestPostPayment_InvalidExpiryDate(t *testing.T) {
 	assert.Equal(t, 0, response.Amount)
 }
 
+func TestPostPayment_InvalidCurrency(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockClient := mocks.NewMockClient(ctrl)
+
+	postPayment := models.PostPaymentHandlerRequest{
+		CardNumber:  2222405343248877,
+		ExpiryMonth: 4,
+		ExpiryYear:  2025,
+		Currency:    "invalid_currency",
+		Amount:      100,
+		Cvv:         123,
+	}
+
+	repo := repository.NewPaymentsRepository()
+	domain := domain.NewPaymentServiceImpl(repo, mockClient)
+
+	response, err := domain.PostPayment(&postPayment)
+	require.Error(t, err)
+
+	_, err = uuid.Parse(response.Id)
+	require.NoError(t, err)
+
+	assert.Equal(t, "declined", response.PaymentStatus)
+	assert.Equal(t, 0, response.CardNumberLastFour)
+	assert.Equal(t, 0, response.ExpiryMonth)
+	assert.Equal(t, 0, response.ExpiryYear)
+	assert.Equal(t, "", response.Currency)
+	assert.Equal(t, 0, response.Amount)
+}
+
 func TestPostPayment_NotAuthorized(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -145,7 +176,7 @@ func TestPostPayment_NotAuthorized(t *testing.T) {
 		CardNumber: "2222405343248877",
 		ExpiryDate: "4/2025",
 		Currency:   "GBP",
-		Amount:     100,
+		Amount:     10000,
 		CVV:        "123",
 	})).Return((&models.PostPaymentBankResponse{
 		// test that we can handle a declined payment
