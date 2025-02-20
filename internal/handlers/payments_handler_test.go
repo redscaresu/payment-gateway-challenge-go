@@ -134,7 +134,7 @@ func TestPostPaymentHandler(t *testing.T) {
 	postPaymentResponseID := uuid.New().String()
 	mockDomain.PaymentService.(*mocks.MockPaymentService).EXPECT().PostPayment(postPayment).Return(&models.PostPaymentResponse{
 		Id:                 postPaymentResponseID,
-		PaymentStatus:      "test-successful-status",
+		PaymentStatus:      "authorized",
 		CardNumberLastFour: 8877,
 		ExpiryMonth:        4,
 		ExpiryYear:         2025,
@@ -168,23 +168,39 @@ func TestPostPaymentHandler(t *testing.T) {
 	assert.Equal(t, postPayment.ExpiryYear, response.ExpiryYear)
 	assert.Equal(t, postPayment.Currency, response.Currency)
 	assert.Equal(t, postPayment.Amount, response.Amount)
-	assert.Equal(t, "test-successful-status", response.PaymentStatus)
+	assert.Equal(t, "authorized", response.PaymentStatus)
 
 }
 
-// t.Run("postPaymentNoBody", func(t *testing.T) {
-// 	// Create a new HTTP request for testing with a non-existing payment ID
-// 	req, err := http.NewRequest("POST", "/api/payments", nil)
-// 	require.NoError(t, err)
+func TestPostPaymentHandler_NoBody(t *testing.T) {
 
-// 	// Create a new HTTP request recorder for recording the response
-// 	w := httptest.NewRecorder()
+	payments := NewPaymentsHandler(nil, nil)
 
-// 	r.ServeHTTP(w, req)
+	r := chi.NewRouter()
+	r.Get("/api/payments/{id}", payments.GetHandler())
+	r.Post("/api/payments", payments.PostHandler())
 
-// 	// Check the HTTP status code in the response
-// 	assert.Equal(t, http.StatusBadRequest, w.Code)
-// })
+	httpServer := &http.Server{
+		Addr:    ":8091",
+		Handler: r,
+	}
+
+	go func() error {
+		return httpServer.ListenAndServe()
+	}()
+
+	// Create a new HTTP request for testing with a non-existing payment ID
+	req, err := http.NewRequest("POST", "/api/payments", nil)
+	require.NoError(t, err)
+
+	// Create a new HTTP request recorder for recording the response
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	// Check the HTTP status code in the response
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
 
 func getLastFourCharacters(t *testing.T, i int) string {
 	t.Helper()
