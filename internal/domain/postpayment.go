@@ -1,7 +1,9 @@
 package domain
 
 import (
+	"errors"
 	"strconv"
+	"time"
 
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/client"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
@@ -38,11 +40,24 @@ func NewPaymentServiceImpl(repo *repository.PaymentsRepository, client client.Cl
 
 func (p *PaymentServiceImpl) PostPayment(request *models.PostPaymentHandlerRequest) (*models.PostPaymentResponse, error) {
 
-	expiryDate := strconv.Itoa(request.ExpiryMonth) + "/" + strconv.Itoa(request.ExpiryYear)
+	uuid := uuid.New().String()
+	if !validateCardNumber(strconv.Itoa(request.CardNumber)) {
+		return &models.PostPaymentResponse{
+			Id:            uuid,
+			PaymentStatus: "declined",
+		}, errors.New("invalid card number")
+	}
+
+	expiryDate, err := validateExpiryDate(request.ExpiryMonth, request.ExpiryYear)
+	if err != nil {
+		return &models.PostPaymentResponse{
+			Id:            uuid,
+			PaymentStatus: "declined",
+		}, errors.New("invalid expiry date")
+	}
+
 	cvv := strconv.Itoa(request.Cvv)
 	cardNumber := strconv.Itoa(request.CardNumber)
-
-	//validate the curreny code
 
 	PostPaymentBankRequest := &models.PostPaymentBankRequest{
 		CardNumber: cardNumber,
@@ -68,7 +83,6 @@ func (p *PaymentServiceImpl) PostPayment(request *models.PostPaymentHandlerReque
 		paymentStatus = "authorized"
 	}
 
-	uuid := uuid.New().String()
 	paymentResponse := &models.PostPaymentResponse{
 		Id:                 uuid,
 		PaymentStatus:      paymentStatus,
@@ -89,4 +103,36 @@ func getLastFourCharacters(s string) string {
 		return s
 	}
 	return s[len(s)-4:]
+}
+
+func validateCardNumber(cardNumber string) bool {
+	if len(cardNumber) < 14 || len(cardNumber) > 19 {
+		return false
+	}
+
+	for _, c := range cardNumber {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func validateExpiryDate(requestMonth, requestYear int) (string, error) {
+	now := time.Now()
+	month := int(now.Month())
+	year := now.Year()
+
+	if requestMonth < month ||
+		requestMonth > 12 ||
+		requestMonth < 1 {
+		return "", errors.New("invalid expiry year")
+	}
+
+	if requestYear < year && requestMonth < month {
+		return "", errors.New("invalid expiry date")
+	}
+
+	return strconv.Itoa(requestMonth) + "/" + strconv.Itoa(requestYear), nil
+
 }

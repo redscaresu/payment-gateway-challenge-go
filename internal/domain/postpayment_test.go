@@ -63,6 +63,70 @@ func TestPostPayment_Authorized(t *testing.T) {
 	assert.Equal(t, response.Id, dbPayment.Id)
 }
 
+func TestPostPayment_InvalidCardNumber(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockClient := mocks.NewMockClient(ctrl)
+
+	postPayment := models.PostPaymentHandlerRequest{
+		// this card number is too short and should trigger an error
+		CardNumber:  123456789,
+		ExpiryMonth: 4,
+		ExpiryYear:  2025,
+		Currency:    "GBP",
+		Amount:      100,
+		Cvv:         123,
+	}
+
+	repo := repository.NewPaymentsRepository()
+	domain := domain.NewPaymentServiceImpl(repo, mockClient)
+
+	response, err := domain.PostPayment(&postPayment)
+	require.Error(t, err)
+
+	_, err = uuid.Parse(response.Id)
+	require.NoError(t, err)
+
+	assert.Equal(t, "declined", response.PaymentStatus)
+	assert.Equal(t, 0, response.CardNumberLastFour)
+	assert.Equal(t, 0, response.ExpiryMonth)
+	assert.Equal(t, 0, response.ExpiryYear)
+	assert.Equal(t, "", response.Currency)
+	assert.Equal(t, 0, response.Amount)
+}
+
+func TestPostPayment_InvalidExpiryDate(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockClient := mocks.NewMockClient(ctrl)
+
+	postPayment := models.PostPaymentHandlerRequest{
+		CardNumber:  2222405343248877,
+		ExpiryMonth: 0,
+
+		ExpiryYear: 2000,
+		Currency:   "GBP",
+		Amount:     100,
+		Cvv:        123,
+	}
+
+	repo := repository.NewPaymentsRepository()
+	domain := domain.NewPaymentServiceImpl(repo, mockClient)
+
+	response, err := domain.PostPayment(&postPayment)
+	require.Error(t, err)
+
+	_, err = uuid.Parse(response.Id)
+	require.NoError(t, err)
+
+	assert.Equal(t, "declined", response.PaymentStatus)
+	assert.Equal(t, 0, response.CardNumberLastFour)
+	assert.Equal(t, 0, response.ExpiryMonth)
+	assert.Equal(t, 0, response.ExpiryYear)
+	assert.Equal(t, "", response.Currency)
+	assert.Equal(t, 0, response.Amount)
+}
+
 func TestPostPayment_NotAuthorized(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -84,6 +148,7 @@ func TestPostPayment_NotAuthorized(t *testing.T) {
 		Amount:     100,
 		CVV:        "123",
 	})).Return((&models.PostPaymentBankResponse{
+		// test that we can handle a declined payment
 		Authorised:        false,
 		AuthorizationCode: "abb53d1a-42dd-4ecc-9a25-dca064d35eb2",
 	}), nil)
