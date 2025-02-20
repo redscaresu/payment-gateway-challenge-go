@@ -16,32 +16,32 @@ import (
 	gomock "go.uber.org/mock/gomock"
 )
 
-// MockPostPaymentService is a mock of PostPaymentService interface.
-type MockPostPaymentService struct {
+// MockPaymentService is a mock of PaymentService interface.
+type MockPaymentService struct {
 	ctrl     *gomock.Controller
-	recorder *MockPostPaymentServiceMockRecorder
+	recorder *MockPaymentServiceMockRecorder
 	isgomock struct{}
 }
 
-// MockPostPaymentServiceMockRecorder is the mock recorder for MockPostPaymentService.
-type MockPostPaymentServiceMockRecorder struct {
-	mock *MockPostPaymentService
+// MockPaymentServiceMockRecorder is the mock recorder for MockPaymentService.
+type MockPaymentServiceMockRecorder struct {
+	mock *MockPaymentService
 }
 
-// NewMockPostPaymentService creates a new mock instance.
-func NewMockPostPaymentService(ctrl *gomock.Controller) *MockPostPaymentService {
-	mock := &MockPostPaymentService{ctrl: ctrl}
-	mock.recorder = &MockPostPaymentServiceMockRecorder{mock}
+// NewMockPaymentService creates a new mock instance.
+func NewMockPaymentService(ctrl *gomock.Controller) *MockPaymentService {
+	mock := &MockPaymentService{ctrl: ctrl}
+	mock.recorder = &MockPaymentServiceMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockPostPaymentService) EXPECT() *MockPostPaymentServiceMockRecorder {
+func (m *MockPaymentService) EXPECT() *MockPaymentServiceMockRecorder {
 	return m.recorder
 }
 
 // PostPayment mocks base method.
-func (m *MockPostPaymentService) PostPayment(request *models.PostPaymentRequest) (*models.PostPaymentResponse, error) {
+func (m *MockPaymentService) PostPayment(request *models.PostPaymentHandlerRequest) (*models.PostPaymentResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PostPayment", request)
 	ret0, _ := ret[0].(*models.PostPaymentResponse)
@@ -50,7 +50,7 @@ func (m *MockPostPaymentService) PostPayment(request *models.PostPaymentRequest)
 }
 
 // PostPayment indicates an expected call of PostPayment.
-func (mr *MockPostPaymentServiceMockRecorder) PostPayment(request any) *gomock.Call {
+func (mr *MockPaymentServiceMockRecorder) PostPayment(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostPayment", reflect.TypeOf((*MockPostPaymentService)(nil).PostPayment), request)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostPayment", reflect.TypeOf((*MockPaymentService)(nil).PostPayment), request)
 }

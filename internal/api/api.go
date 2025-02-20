@@ -23,7 +23,7 @@ type Api struct {
 	router             *chi.Mux
 	paymentsRepo       *repository.PaymentsRepository
 	domain             *domain.Domain
-	PostPaymentService *domain.PostPaymentServiceImpl
+	PostPaymentService *domain.PaymentServiceImpl
 }
 
 func New() *Api {
@@ -31,7 +31,7 @@ func New() *Api {
 	repo := repository.NewPaymentsRepository()
 	a.paymentsRepo = repo
 	client := client.NewClient(bankURL, 5*time.Second)
-	postPaymentService := domain.NewPostPaymentServiceImpl(repo, client)
+	postPaymentService := domain.NewPaymentServiceImpl(repo, client)
 	a.domain = domain.NewDomain(repo, client, postPaymentService)
 	a.setupRouter()
 

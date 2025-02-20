@@ -56,14 +56,14 @@ func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 			return
 		}
 
-		var paymentRequest models.PostPaymentRequest
+		var paymentRequest models.PostPaymentHandlerRequest
 		if err := json.NewDecoder(r.Body).Decode(&paymentRequest); err != nil {
 			log.Printf("Error decoding request body: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		domainResponse, err := ph.domain.PostPaymentService.PostPayment(&paymentRequest)
+		domainResponse, err := ph.domain.PaymentService.PostPayment(&paymentRequest)
 		if err != nil {
 			log.Printf("Error processing payment: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)

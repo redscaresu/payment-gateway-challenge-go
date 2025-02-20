@@ -10,45 +10,42 @@ import (
 )
 
 type Domain struct {
-	repo               *repository.PaymentsRepository
-	client             client.Client
-	PostPaymentService PostPaymentService
+	PaymentService PaymentService
 }
 
-func NewDomain(repo *repository.PaymentsRepository, client client.Client, postPaymentService PostPaymentService) *Domain {
+func NewDomain(repo *repository.PaymentsRepository, client client.Client, postPaymentService PaymentService) *Domain {
 	return &Domain{
-		repo:               repo,
-		client:             client,
-		PostPaymentService: postPaymentService,
+		PaymentService: postPaymentService,
 	}
 }
 
-type PostPaymentService interface {
-	PostPayment(request *models.PostPaymentRequest) (*models.PostPaymentResponse, error)
+type PaymentService interface {
+	PostPayment(request *models.PostPaymentHandlerRequest) (*models.PostPaymentResponse, error)
 }
 
-type PostPaymentServiceImpl struct {
+type PaymentServiceImpl struct {
 	repo               *repository.PaymentsRepository
-	PostPaymentService PostPaymentService
+	PostPaymentService PaymentService
 	client             client.Client
 }
 
-func NewPostPaymentServiceImpl(repo *repository.PaymentsRepository, client client.Client) *PostPaymentServiceImpl {
-	return &PostPaymentServiceImpl{
+func NewPaymentServiceImpl(repo *repository.PaymentsRepository, client client.Client) *PaymentServiceImpl {
+	return &PaymentServiceImpl{
 		repo:   repo,
 		client: client,
 	}
 }
 
-func (d *PostPaymentServiceImpl) PostPayment(request *models.PostPaymentRequest) (*models.PostPaymentResponse, error) {
+func (p *PaymentServiceImpl) PostPayment(request *models.PostPaymentHandlerRequest) (*models.PostPaymentResponse, error) {
 
 	expiryDate := strconv.Itoa(request.ExpiryMonth) + "/" + strconv.Itoa(request.ExpiryYear)
 	cvv := strconv.Itoa(request.Cvv)
+	cardNumber := strconv.Itoa(request.CardNumber)
 
 	//validate the curreny code
 
 	PostPaymentBankRequest := &models.PostPaymentBankRequest{
-		CardNumber: "2222405343248877",
+		CardNumber: cardNumber,
 		ExpiryDate: expiryDate,
 		Currency:   request.Currency,
 		Amount:     request.Amount,
@@ -56,7 +53,12 @@ func (d *PostPaymentServiceImpl) PostPayment(request *models.PostPaymentRequest)
 	}
 
 	// make a call to the external payment API
-	bankResponse, err := d.client.PostBankPayment(PostPaymentBankRequest)
+	bankResponse, err := p.client.PostBankPayment(PostPaymentBankRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	cardNumberLastFour, err := strconv.Atoi(getLastFourCharacters(cardNumber))
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +67,7 @@ func (d *PostPaymentServiceImpl) PostPayment(request *models.PostPaymentRequest)
 	paymentResponse := &models.PostPaymentResponse{
 		Id:                 uuid,
 		PaymentStatus:      strconv.FormatBool(bankResponse.Authorised),
-		CardNumberLastFour: request.CardNumberLastFour,
+		CardNumberLastFour: cardNumberLastFour,
 		ExpiryMonth:        request.ExpiryMonth,
 		ExpiryYear:         request.ExpiryYear,
 		Currency:           request.Currency,
@@ -73,7 +75,14 @@ func (d *PostPaymentServiceImpl) PostPayment(request *models.PostPaymentRequest)
 	}
 
 	// save the payment in the repository
-	d.repo.AddPayment(*paymentResponse)
+	p.repo.AddPayment(*paymentResponse)
 
 	return paymentResponse, nil
+}
+
+func getLastFourCharacters(s string) string {
+	if len(s) < 4 {
+		return s
+	}
+	return s[len(s)-4:]
 }

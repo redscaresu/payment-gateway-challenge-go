@@ -1,6 +1,7 @@
 package domain_test
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/client/mocks"
@@ -18,13 +19,13 @@ func TestPostPayment(t *testing.T) {
 	defer ctrl.Finish()
 	mockClient := mocks.NewMockClient(ctrl)
 
-	postPayment := models.PostPaymentRequest{
-		CardNumberLastFour: 8877,
-		ExpiryMonth:        4,
-		ExpiryYear:         2025,
-		Currency:           "GBP",
-		Amount:             100,
-		Cvv:                123,
+	postPayment := models.PostPaymentHandlerRequest{
+		CardNumber:  2222405343248877,
+		ExpiryMonth: 4,
+		ExpiryYear:  2025,
+		Currency:    "GBP",
+		Amount:      100,
+		Cvv:         123,
 	}
 
 	mockClient.EXPECT().PostBankPayment((&models.PostPaymentBankRequest{
@@ -39,7 +40,7 @@ func TestPostPayment(t *testing.T) {
 	}), nil)
 
 	repo := repository.NewPaymentsRepository()
-	domain := domain.NewPostPaymentServiceImpl(repo, mockClient)
+	domain := domain.NewPaymentServiceImpl(repo, mockClient)
 
 	response, err := domain.PostPayment(&postPayment)
 	require.NoError(t, err)
@@ -47,8 +48,11 @@ func TestPostPayment(t *testing.T) {
 	_, err = uuid.Parse(response.Id)
 	require.NoError(t, err)
 
+	lastFourCharacters, err := strconv.Atoi(getLastFourCharacters(t, postPayment.CardNumber))
+	require.NoError(t, err)
+
 	assert.Equal(t, "true", response.PaymentStatus)
-	assert.Equal(t, postPayment.CardNumberLastFour, response.CardNumberLastFour)
+	assert.Equal(t, lastFourCharacters, response.CardNumberLastFour)
 	assert.Equal(t, postPayment.ExpiryMonth, response.ExpiryMonth)
 	assert.Equal(t, postPayment.ExpiryYear, response.ExpiryYear)
 	assert.Equal(t, postPayment.Currency, response.Currency)
@@ -57,4 +61,12 @@ func TestPostPayment(t *testing.T) {
 	// Check if the payment was saved in the repository
 	dbPayment := repo.GetPayment(response.Id)
 	assert.Equal(t, response.Id, dbPayment.Id)
+}
+
+func getLastFourCharacters(t *testing.T, i int) string {
+	t.Helper()
+
+	s := strconv.Itoa(i)
+	require.Equal(t, 16, len(s))
+	return s[len(s)-4:]
 }

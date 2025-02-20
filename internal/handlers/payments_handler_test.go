@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain"
@@ -97,11 +98,11 @@ func TestPostPaymentHandler(t *testing.T) {
 	ps := repository.NewPaymentsRepository()
 	ps.AddPayment(expectedPayment)
 	ctrl := gomock.NewController(t)
-	mockPostPaymentService := mocks.NewMockPostPaymentService(ctrl)
+	mockPaymentService := mocks.NewMockPaymentService(ctrl)
 	defer ctrl.Finish()
 
 	mockDomain := &domain.Domain{
-		PostPaymentService: mockPostPaymentService,
+		PaymentService: mockPaymentService,
 	}
 
 	payments := NewPaymentsHandler(ps, mockDomain)
@@ -120,20 +121,20 @@ func TestPostPaymentHandler(t *testing.T) {
 	}()
 
 	// Arrange
-	postPayment := &models.PostPaymentRequest{
-		CardNumberLastFour: 8877,
-		ExpiryMonth:        4,
-		ExpiryYear:         2025,
-		Currency:           "GBP",
-		Amount:             100,
-		Cvv:                123,
+	postPayment := &models.PostPaymentHandlerRequest{
+		CardNumber:  2222405343248877,
+		ExpiryMonth: 4,
+		ExpiryYear:  2025,
+		Currency:    "GBP",
+		Amount:      100,
+		Cvv:         123,
 	}
 
 	body, err := json.Marshal(postPayment)
 	require.NoError(t, err)
 
 	postPaymentResponseID := uuid.New().String()
-	mockDomain.PostPaymentService.(*mocks.MockPostPaymentService).EXPECT().PostPayment(postPayment).Return(&models.PostPaymentResponse{
+	mockDomain.PaymentService.(*mocks.MockPaymentService).EXPECT().PostPayment(postPayment).Return(&models.PostPaymentResponse{
 		Id:                 postPaymentResponseID,
 		PaymentStatus:      "test-successful-status",
 		CardNumberLastFour: 8877,
@@ -159,9 +160,12 @@ func TestPostPaymentHandler(t *testing.T) {
 	err = json.NewDecoder(w.Body).Decode(&response)
 	require.NoError(t, err)
 
+	lastFourCharacters, err := strconv.Atoi(getLastFourCharacters(t, postPayment.CardNumber))
+	require.NoError(t, err)
+
 	// Assert
 	assert.Equal(t, postPaymentResponseID, response.Id)
-	assert.Equal(t, postPayment.CardNumberLastFour, response.CardNumberLastFour)
+	assert.Equal(t, lastFourCharacters, response.CardNumberLastFour)
 	assert.Equal(t, postPayment.ExpiryMonth, response.ExpiryMonth)
 	assert.Equal(t, postPayment.ExpiryYear, response.ExpiryYear)
 	assert.Equal(t, postPayment.Currency, response.Currency)
@@ -183,3 +187,11 @@ func TestPostPaymentHandler(t *testing.T) {
 // 	// Check the HTTP status code in the response
 // 	assert.Equal(t, http.StatusBadRequest, w.Code)
 // })
+
+func getLastFourCharacters(t *testing.T, i int) string {
+	t.Helper()
+
+	s := strconv.Itoa(i)
+	require.Equal(t, 16, len(s))
+	return s[len(s)-4:]
+}
