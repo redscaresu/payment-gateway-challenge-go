@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/client"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain"
@@ -14,18 +15,24 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const (
+	bankURL = "http://localhost:8080"
+)
+
 type Api struct {
-	router       *chi.Mux
-	paymentsRepo *repository.PaymentsRepository
-	domain       *domain.Domain
+	router             *chi.Mux
+	paymentsRepo       *repository.PaymentsRepository
+	domain             *domain.Domain
+	PostPaymentService *domain.PostPaymentServiceImpl
 }
 
 func New() *Api {
 	a := &Api{}
 	repo := repository.NewPaymentsRepository()
 	a.paymentsRepo = repo
-	client := client.NewClient("localhost:8080", 5)
-	a.domain = domain.NewDomain(repo, client)
+	client := client.NewClient(bankURL, 5*time.Second)
+	postPaymentService := domain.NewPostPaymentServiceImpl(repo, client)
+	a.domain = domain.NewDomain(repo, client, postPaymentService)
 	a.setupRouter()
 
 	return a

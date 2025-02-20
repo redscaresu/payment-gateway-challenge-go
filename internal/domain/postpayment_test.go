@@ -39,7 +39,7 @@ func TestPostPayment(t *testing.T) {
 	}), nil)
 
 	repo := repository.NewPaymentsRepository()
-	domain := domain.NewDomain(repo, mockClient)
+	domain := domain.NewPostPaymentServiceImpl(repo, mockClient)
 
 	response, err := domain.PostPayment(&postPayment)
 	require.NoError(t, err)

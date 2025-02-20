@@ -31,7 +31,7 @@ func TestGetPaymentHandler(t *testing.T) {
 	ps := repository.NewPaymentsRepository()
 	ps.AddPayment(expectedPayment)
 
-	domain := domain.NewDomain(ps, nil)
+	domain := domain.NewDomain(ps, nil, nil)
 
 	payments := NewPaymentsHandler(ps, domain)
 

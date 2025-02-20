@@ -9,29 +9,38 @@ import (
 	"github.com/google/uuid"
 )
 
-// PostPaymentService is a domain service that processes a payment request.
+type Domain struct {
+	repo               *repository.PaymentsRepository
+	client             client.Client
+	PostPaymentService PostPaymentService
+}
+
+func NewDomain(repo *repository.PaymentsRepository, client client.Client, postPaymentService PostPaymentService) *Domain {
+	return &Domain{
+		repo:               repo,
+		client:             client,
+		PostPaymentService: postPaymentService,
+	}
+}
+
 type PostPaymentService interface {
-	// PostPayment processes a payment request and returns a payment response.
 	PostPayment(request *models.PostPaymentRequest) (*models.PostPaymentResponse, error)
 }
 
-// Domain is a domain service that processes a payment request.
-type Domain struct {
-	repo *repository.PaymentsRepository
-	PostPaymentService
-	client client.Client
+type PostPaymentServiceImpl struct {
+	repo               *repository.PaymentsRepository
+	PostPaymentService PostPaymentService
+	client             client.Client
 }
 
-// NewDomain creates a new PostPaymentService.
-func NewDomain(repo *repository.PaymentsRepository, client client.Client) *Domain {
-	return &Domain{
+func NewPostPaymentServiceImpl(repo *repository.PaymentsRepository, client client.Client) *PostPaymentServiceImpl {
+	return &PostPaymentServiceImpl{
 		repo:   repo,
 		client: client,
 	}
 }
 
-// PostPayment processes a payment request and returns a payment response.
-func (d *Domain) PostPayment(request *models.PostPaymentRequest) (*models.PostPaymentResponse, error) {
+func (d *PostPaymentServiceImpl) PostPayment(request *models.PostPaymentRequest) (*models.PostPaymentResponse, error) {
 
 	expiryDate := strconv.Itoa(request.ExpiryMonth) + "/" + strconv.Itoa(request.ExpiryYear)
 	cvv := strconv.Itoa(request.Cvv)

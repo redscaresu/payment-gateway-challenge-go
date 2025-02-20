@@ -30,7 +30,7 @@ func NewClient(baseURL string, timeout time.Duration) *HTTPClient {
 }
 
 func (c *HTTPClient) PostBankPayment(request *models.PostPaymentBankRequest) (*models.PostPaymentBankResponse, error) {
-	url := fmt.Sprintf("%s/payment", c.baseURL)
+	url := fmt.Sprintf("%s/payments", c.baseURL)
 	body, err := json.Marshal(request)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
