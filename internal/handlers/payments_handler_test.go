@@ -32,9 +32,7 @@ func TestGetPaymentHandler(t *testing.T) {
 	ps := repository.NewPaymentsRepository()
 	ps.AddPayment(expectedPayment)
 
-	domain := domain.NewDomain(ps, nil, nil)
-
-	payments := NewPaymentsHandler(ps, domain)
+	payments := NewPaymentsHandler(ps, nil)
 
 	r := chi.NewRouter()
 	r.Get("/api/payments/{id}", payments.GetHandler())

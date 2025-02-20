@@ -13,9 +13,9 @@ type Domain struct {
 	PaymentService PaymentService
 }
 
-func NewDomain(repo *repository.PaymentsRepository, client client.Client, postPaymentService PaymentService) *Domain {
+func NewDomain(paymentService PaymentService) *Domain {
 	return &Domain{
-		PaymentService: postPaymentService,
+		PaymentService: paymentService,
 	}
 }
 
@@ -63,10 +63,15 @@ func (p *PaymentServiceImpl) PostPayment(request *models.PostPaymentHandlerReque
 		return nil, err
 	}
 
+	paymentStatus := "declined"
+	if bankResponse.Authorised {
+		paymentStatus = "authorized"
+	}
+
 	uuid := uuid.New().String()
 	paymentResponse := &models.PostPaymentResponse{
 		Id:                 uuid,
-		PaymentStatus:      strconv.FormatBool(bankResponse.Authorised),
+		PaymentStatus:      paymentStatus,
 		CardNumberLastFour: cardNumberLastFour,
 		ExpiryMonth:        request.ExpiryMonth,
 		ExpiryYear:         request.ExpiryYear,
@@ -74,7 +79,6 @@ func (p *PaymentServiceImpl) PostPayment(request *models.PostPaymentHandlerReque
 		Amount:             request.Amount,
 	}
 
-	// save the payment in the repository
 	p.repo.AddPayment(*paymentResponse)
 
 	return paymentResponse, nil

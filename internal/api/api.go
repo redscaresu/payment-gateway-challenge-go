@@ -32,7 +32,7 @@ func New() *Api {
 	a.paymentsRepo = repo
 	client := client.NewClient(bankURL, 5*time.Second)
 	postPaymentService := domain.NewPaymentServiceImpl(repo, client)
-	a.domain = domain.NewDomain(repo, client, postPaymentService)
+	a.domain = domain.NewDomain(postPaymentService)
 	a.setupRouter()
 
 	return a
