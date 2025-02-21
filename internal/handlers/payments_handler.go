@@ -8,7 +8,7 @@ import (
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
 const (
@@ -34,6 +34,12 @@ func NewPaymentsHandler(storage *repository.PaymentsRepository, domain *domain.D
 func (h *PaymentsHandler) GetHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
+		log.Printf("Extracted ID: %s", id)
+		if id == "" {
+			log.Println("Missing ID parameter")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		payment := h.storage.GetPayment(id)
 
 		if payment == nil {
@@ -41,9 +47,19 @@ func (h *PaymentsHandler) GetHandler() http.HandlerFunc {
 			return
 		}
 
+		paymentResponse := models.GetPaymentHandlerResponse{
+			Id:                 payment.Id,
+			Status:             payment.PaymentStatus,
+			LastFourCardDigits: payment.CardNumberLastFour,
+			ExpiryMonth:        payment.ExpiryMonth,
+			ExpiryYear:         payment.ExpiryYear,
+			Currency:           payment.Currency,
+			Amount:             payment.Amount,
+		}
+
 		w.Header().Set(contentTypeHeader, jsonContentType)
 		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(payment); err != nil {
+		if err := json.NewEncoder(w).Encode(paymentResponse); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 	}
@@ -59,7 +75,6 @@ func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 		var paymentRequest models.PostPaymentHandlerRequest
 		if err := json.NewDecoder(r.Body).Decode(&paymentRequest); err != nil {
 			log.Printf("Error decoding request body: %v", err)
-			w.Write([]byte("bad request error"))
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}

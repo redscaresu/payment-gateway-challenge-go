@@ -9,6 +9,16 @@ type PostPaymentHandlerRequest struct {
 	Cvv         int    `json:"cvv"`
 }
 
+type GetPaymentHandlerResponse struct {
+	Id                 string `json:"id"`
+	Status             string `json:"status"`
+	LastFourCardDigits int    `json:"last_four_card_digits"`
+	ExpiryMonth        int    `json:"expiry_month"`
+	ExpiryYear         int    `json:"expiry_year"`
+	Currency           string `json:"currency"`
+	Amount             int    `json:"amount"`
+}
+
 type PostPaymentRequest struct {
 	CardNumberLastFour int    `json:"card_number_last_four"`
 	ExpiryMonth        int    `json:"expiry_month"`

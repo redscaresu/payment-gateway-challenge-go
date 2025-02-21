@@ -12,7 +12,7 @@ import (
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain/mocks"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,7 +20,7 @@ import (
 )
 
 func TestGetPaymentHandler(t *testing.T) {
-	expectedPayment := models.PostPaymentResponse{
+	savedPayment := models.PostPaymentResponse{
 		Id:                 "test-id",
 		PaymentStatus:      "test-successful-status",
 		CardNumberLastFour: 1234,
@@ -30,7 +30,17 @@ func TestGetPaymentHandler(t *testing.T) {
 		Amount:             100,
 	}
 	ps := repository.NewPaymentsRepository()
-	ps.AddPayment(expectedPayment)
+	ps.AddPayment(savedPayment)
+
+	expectedPayment := models.GetPaymentHandlerResponse{
+		Id:                 "test-id",
+		Status:             "test-successful-status",
+		LastFourCardDigits: 1234,
+		ExpiryMonth:        10,
+		ExpiryYear:         2035,
+		Currency:           "GBP",
+		Amount:             100,
+	}
 
 	payments := NewPaymentsHandler(ps, nil)
 
@@ -60,7 +70,7 @@ func TestGetPaymentHandler(t *testing.T) {
 		// Check the body is not nil
 		require.NotNil(t, w.Body)
 
-		var response models.PostPaymentResponse
+		var response models.GetPaymentHandlerResponse
 		err = json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
 
