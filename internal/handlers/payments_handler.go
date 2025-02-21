@@ -59,6 +59,7 @@ func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 		var paymentRequest models.PostPaymentHandlerRequest
 		if err := json.NewDecoder(r.Body).Decode(&paymentRequest); err != nil {
 			log.Printf("Error decoding request body: %v", err)
+			w.Write([]byte("bad request error"))
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}

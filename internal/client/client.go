@@ -36,6 +36,9 @@ func (c *HTTPClient) PostBankPayment(request *models.PostPaymentBankRequest) (*m
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
+	// // Log the JSON payload
+	// log.Printf("Sending request to %s with payload: %s", url, string(body))
+
 	resp, err := c.httpClient.Post(url, "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to make POST request: %w", err)

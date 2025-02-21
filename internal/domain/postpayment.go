@@ -44,7 +44,7 @@ func (p *PaymentServiceImpl) PostPayment(request *models.PostPaymentHandlerReque
 	if !validateCardNumber(strconv.Itoa(request.CardNumber)) {
 		return &models.PostPaymentResponse{
 			Id:            uuid,
-			PaymentStatus: "declined",
+			PaymentStatus: "rejected",
 		}, errors.New("invalid card number")
 	}
 
@@ -52,14 +52,14 @@ func (p *PaymentServiceImpl) PostPayment(request *models.PostPaymentHandlerReque
 	if err != nil {
 		return &models.PostPaymentResponse{
 			Id:            uuid,
-			PaymentStatus: "declined",
+			PaymentStatus: "rejected",
 		}, errors.New("invalid expiry date")
 	}
 
 	if !validateCurrencyISO(request.Currency) {
 		return &models.PostPaymentResponse{
 			Id:            uuid,
-			PaymentStatus: "declined",
+			PaymentStatus: "rejected",
 		}, errors.New("invalid currency")
 	}
 
@@ -68,7 +68,7 @@ func (p *PaymentServiceImpl) PostPayment(request *models.PostPaymentHandlerReque
 	if err != nil {
 		return &models.PostPaymentResponse{
 			Id:            uuid,
-			PaymentStatus: "declined",
+			PaymentStatus: "rejected",
 		}, errors.New("invalid amount")
 	}
 
@@ -76,7 +76,7 @@ func (p *PaymentServiceImpl) PostPayment(request *models.PostPaymentHandlerReque
 	if err != nil {
 		return &models.PostPaymentResponse{
 			Id:            uuid,
-			PaymentStatus: "declined",
+			PaymentStatus: "rejected",
 		}, errors.New("invalid cvv")
 	}
 
@@ -90,7 +90,6 @@ func (p *PaymentServiceImpl) PostPayment(request *models.PostPaymentHandlerReque
 		CVV:        cvv,
 	}
 
-	// make a call to the external payment API
 	bankResponse, err := p.client.PostBankPayment(PostPaymentBankRequest)
 	if err != nil {
 		return nil, err

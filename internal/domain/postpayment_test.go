@@ -87,7 +87,7 @@ func TestPostPayment_InvalidCardNumber(t *testing.T) {
 	_, err = uuid.Parse(response.Id)
 	require.NoError(t, err)
 
-	assert.Equal(t, "declined", response.PaymentStatus)
+	assert.Equal(t, "rejected", response.PaymentStatus)
 	assert.Equal(t, 0, response.CardNumberLastFour)
 	assert.Equal(t, 0, response.ExpiryMonth)
 	assert.Equal(t, 0, response.ExpiryYear)
@@ -119,7 +119,7 @@ func TestPostPayment_InvalidExpiryDate(t *testing.T) {
 	_, err = uuid.Parse(response.Id)
 	require.NoError(t, err)
 
-	assert.Equal(t, "declined", response.PaymentStatus)
+	assert.Equal(t, "rejected", response.PaymentStatus)
 	assert.Equal(t, 0, response.CardNumberLastFour)
 	assert.Equal(t, 0, response.ExpiryMonth)
 	assert.Equal(t, 0, response.ExpiryYear)
@@ -150,7 +150,41 @@ func TestPostPayment_InvalidCurrency(t *testing.T) {
 	_, err = uuid.Parse(response.Id)
 	require.NoError(t, err)
 
-	assert.Equal(t, "declined", response.PaymentStatus)
+	assert.Equal(t, "rejected", response.PaymentStatus)
+	assert.Equal(t, 0, response.CardNumberLastFour)
+	assert.Equal(t, 0, response.ExpiryMonth)
+	assert.Equal(t, 0, response.ExpiryYear)
+	assert.Equal(t, "", response.Currency)
+	assert.Equal(t, 0, response.Amount)
+}
+
+func TestPostPayment_InvalidCVV(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockClient := mocks.NewMockClient(ctrl)
+
+	postPayment := models.PostPaymentHandlerRequest{
+		CardNumber:  2222405343248877,
+		ExpiryMonth: 4,
+		ExpiryYear:  2025,
+		Currency:    "GBP",
+		Amount:      100,
+		Cvv:         0,
+	}
+
+	repo := repository.NewPaymentsRepository()
+	domain := domain.NewPaymentServiceImpl(repo, mockClient)
+
+	response, err := domain.PostPayment(&postPayment)
+	require.Error(t, err)
+
+	_, err = uuid.Parse(response.Id)
+	require.NoError(t, err)
+
+	_, err = uuid.Parse(response.Id)
+	require.NoError(t, err)
+
+	assert.Equal(t, "rejected", response.PaymentStatus)
 	assert.Equal(t, 0, response.CardNumberLastFour)
 	assert.Equal(t, 0, response.ExpiryMonth)
 	assert.Equal(t, 0, response.ExpiryYear)
@@ -206,40 +240,6 @@ func TestPostPayment_NotAuthorized(t *testing.T) {
 	// Check if the payment was saved in the repository
 	dbPayment := repo.GetPayment(response.Id)
 	assert.Equal(t, response.Id, dbPayment.Id)
-}
-
-func TestPostPayment_InvalidCVV(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockClient := mocks.NewMockClient(ctrl)
-
-	postPayment := models.PostPaymentHandlerRequest{
-		CardNumber:  2222405343248877,
-		ExpiryMonth: 4,
-		ExpiryYear:  2025,
-		Currency:    "GBP",
-		Amount:      100,
-		Cvv:         0,
-	}
-
-	repo := repository.NewPaymentsRepository()
-	domain := domain.NewPaymentServiceImpl(repo, mockClient)
-
-	response, err := domain.PostPayment(&postPayment)
-	require.Error(t, err)
-
-	_, err = uuid.Parse(response.Id)
-	require.NoError(t, err)
-
-	_, err = uuid.Parse(response.Id)
-	require.NoError(t, err)
-
-	assert.Equal(t, "declined", response.PaymentStatus)
-	assert.Equal(t, 0, response.CardNumberLastFour)
-	assert.Equal(t, 0, response.ExpiryMonth)
-	assert.Equal(t, 0, response.ExpiryYear)
-	assert.Equal(t, "", response.Currency)
-	assert.Equal(t, 0, response.Amount)
 }
 
 func getLastFourCharacters(t *testing.T, i int) string {
