@@ -64,7 +64,6 @@ func (p *PaymentServiceImpl) PostPayment(request *models.PostPaymentHandlerReque
 		}, errors.New("invalid currency")
 	}
 
-	//convert dollars to cents
 	totalAmount, err := validateAmount(request.Amount)
 	if err != nil {
 		return &models.PostPaymentResponse{
