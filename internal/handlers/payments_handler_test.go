@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/api"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain"
@@ -18,6 +19,9 @@ import (
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/handlers"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -387,8 +391,10 @@ func TestBankError_ServiceUnavailable(t *testing.T) {
 }
 
 func TestPostPaymentHandler_Integration(t *testing.T) {
-	// Set up the repository and domain
-	ctx := context.Background()
+	// Start Mountebank container
+	ctx, cli, containerID := startMountebankContainer(t)
+	defer stopMountebankContainer(ctx, cli, containerID)
+
 	api := api.New()
 
 	go func() {
@@ -448,4 +454,39 @@ func getLastFourCharacters(t *testing.T, i int) string {
 	s := strconv.Itoa(i)
 	require.Equal(t, 16, len(s))
 	return s[len(s)-4:]
+}
+
+func startMountebankContainer(t *testing.T) (context.Context, *client.Client, string) {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	require.NoError(t, err)
+
+	resp, err := cli.ContainerCreate(ctx, &container.Config{
+		Image: "bbyars/mountebank:2.8.1",
+		ExposedPorts: map[nat.Port]struct{}{
+			"8085/tcp": {},
+		},
+	}, &container.HostConfig{
+		PortBindings: nat.PortMap{
+			"8080/tcp": []nat.PortBinding{
+				{
+					HostPort: "8080",
+				},
+			},
+		},
+	}, nil, nil, "")
+	require.NoError(t, err)
+
+	err = cli.ContainerStart(ctx, resp.ID, container.StartOptions{})
+	require.NoError(t, err)
+
+	// Wait for Mountebank to be ready
+	time.Sleep(5 * time.Second)
+
+	return ctx, cli, resp.ID
+}
+
+func stopMountebankContainer(ctx context.Context, cli *client.Client, containerID string) {
+	cli.ContainerStop(ctx, containerID, container.StopOptions{})
+	cli.ContainerRemove(ctx, containerID, container.RemoveOptions{})
 }
