@@ -3,10 +3,13 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
+	genericerrors "github.com/cko-recruitment/payment-gateway-challenge-go/internal/errors"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 )
 
@@ -36,14 +39,21 @@ func (c *HTTPClient) PostBankPayment(request *models.PostPaymentBankRequest) (*m
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	// // Log the JSON payload
-	// log.Printf("Sending request to %s with payload: %s", url, string(body))
+	// Log the JSON payload
+	log.Printf("Sending request to %s with payload: %s", url, string(body))
 
 	resp, err := c.httpClient.Post(url, "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to make POST request: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusServiceUnavailable {
+		return nil, genericerrors.NewBankError(
+			errors.New("acquiring bank unavailble"),
+			http.StatusServiceUnavailable,
+		)
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("received non-200 response: %d", resp.StatusCode)

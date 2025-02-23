@@ -6,8 +6,10 @@ import (
 	"net/http"
 
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain"
+	genericerrors "github.com/cko-recruitment/payment-gateway-challenge-go/internal/errors"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
+
 	"github.com/go-chi/chi/v5"
 )
 
@@ -81,9 +83,14 @@ func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 
 		domainResponse, err := ph.domain.PaymentService.PostPayment(&paymentRequest)
 		if err != nil {
-			log.Printf("Error processing payment: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+			be, ok := err.(*genericerrors.BankError)
+			if ok {
+				if be.StatusCode == http.StatusServiceUnavailable {
+					log.Printf("Error processing payment: %v", be)
+					w.WriteHeader(http.StatusServiceUnavailable)
+					return
+				}
+			}
 		}
 
 		w.Header().Set(contentTypeHeader, jsonContentType)

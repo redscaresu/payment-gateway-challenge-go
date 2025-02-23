@@ -8,6 +8,7 @@ import (
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/client"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
+
 	"github.com/google/uuid"
 )
 
@@ -173,8 +174,6 @@ func validateAmount(amount int) (int, error) {
 	if amount < 0 {
 		return 0, errors.New("invalid amount")
 	}
-
-	amount = amount * 100
 	return amount, nil
 }
 
