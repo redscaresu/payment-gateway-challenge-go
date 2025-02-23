@@ -55,8 +55,10 @@ func TestGetPaymentHandler(t *testing.T) {
 		Handler: r,
 	}
 
-	go func() error {
-		return httpServer.ListenAndServe()
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			t.Errorf("could not listen on %s due to %s", httpServer.Addr, err.Error())
+		}
 	}()
 
 	t.Run("PaymentFound", func(t *testing.T) {
@@ -126,8 +128,10 @@ func TestPostPaymentHandler(t *testing.T) {
 		Handler: r,
 	}
 
-	go func() error {
-		return httpServer.ListenAndServe()
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			t.Errorf("could not listen on %s due to %s", httpServer.Addr, err.Error())
+		}
 	}()
 
 	// Arrange
@@ -198,8 +202,10 @@ func TestPostPaymentHandler_NoBody(t *testing.T) {
 		Handler: r,
 	}
 
-	go func() error {
-		return httpServer.ListenAndServe()
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			t.Errorf("could not listen on %s due to %s", httpServer.Addr, err.Error())
+		}
 	}()
 
 	// Create a new HTTP request for testing with a non-existing payment ID
@@ -228,8 +234,10 @@ func TestPostPaymentHandler_InvalidJson(t *testing.T) {
 		Handler: r,
 	}
 
-	go func() error {
-		return httpServer.ListenAndServe()
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			t.Errorf("could not listen on %s due to %s", httpServer.Addr, err.Error())
+		}
 	}()
 
 	// Create a new HTTP request for testing with a non-existing payment ID
@@ -277,8 +285,10 @@ func TestBankError_DomainError(t *testing.T) {
 		Handler: r,
 	}
 
-	go func() error {
-		return httpServer.ListenAndServe()
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			t.Errorf("could not listen on %s due to %s", httpServer.Addr, err.Error())
+		}
 	}()
 
 	// Arrange
@@ -341,8 +351,10 @@ func TestBankError_ServiceUnavailable(t *testing.T) {
 		Handler: r,
 	}
 
-	go func() error {
-		return httpServer.ListenAndServe()
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			t.Errorf("could not listen on %s due to %s", httpServer.Addr, err.Error())
+		}
 	}()
 
 	// Arrange
