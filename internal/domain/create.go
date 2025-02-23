@@ -47,6 +47,7 @@ func (p *PaymentServiceImpl) Create(request *models.PostPaymentHandlerRequest) (
 	if err != nil {
 		return nil, err
 	}
+	cardNumber := strconv.Itoa(request.CardNumber)
 
 	expiryDate, err := validateExpiryDate(request.ExpiryMonth, request.ExpiryYear, uuid)
 	if err != nil {
@@ -58,30 +59,24 @@ func (p *PaymentServiceImpl) Create(request *models.PostPaymentHandlerRequest) (
 		return nil, err
 	}
 
-	totalAmount, err := validateAmount(request.Amount)
+	err = validateAmount(request.Amount, uuid)
 	if err != nil {
-		return &models.PostPaymentResponse{
-			Id:            uuid,
-			PaymentStatus: "rejected",
-		}, errors.New("invalid amount")
+		return nil, err
 	}
 
-	cvv, err := validateCVV(request.Cvv)
+	err = validateCVV(request.Cvv, uuid)
 	if err != nil {
-		return &models.PostPaymentResponse{
-			Id:            uuid,
-			PaymentStatus: "rejected",
-		}, errors.New("invalid cvv")
+		return nil, err
 	}
 
-	cardNumber := strconv.Itoa(request.CardNumber)
+	cvvString := strconv.Itoa(request.Cvv)
 
 	PostPaymentBankRequest := &models.PostPaymentBankRequest{
 		CardNumber: cardNumber,
 		ExpiryDate: expiryDate,
 		Currency:   request.Currency,
-		Amount:     totalAmount,
-		CVV:        cvv,
+		Amount:     request.Amount,
+		CVV:        cvvString,
 	}
 
 	bankResponse, err := p.client.PostBankPayment(PostPaymentBankRequest)
@@ -183,17 +178,25 @@ func validateCurrencyISO(currency, id string) error {
 	return nil
 }
 
-func validateAmount(amount int) (int, error) {
-	if amount < 0 {
-		return 0, errors.New("invalid amount")
+func validateAmount(amount int, id string) error {
+	if amount <= 0 {
+		return gatewayerrors.NewValidationError(
+			errors.New("invalid amount"),
+			id,
+			"amount",
+		)
 	}
-	return amount, nil
+	return nil
 }
 
-func validateCVV(cvv int) (string, error) {
+func validateCVV(cvv int, id string) error {
 	if cvv < 100 || cvv > 9999 {
-		return "", errors.New("invalid cvv")
+		return gatewayerrors.NewValidationError(
+			errors.New("invalid cvv"),
+			id,
+			"cvv",
+		)
 	}
 
-	return strconv.Itoa(cvv), nil
+	return nil
 }

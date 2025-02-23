@@ -162,27 +162,51 @@ func TestPostPayment_InvalidCVV(t *testing.T) {
 		ExpiryYear:  2025,
 		Currency:    "GBP",
 		Amount:      100,
-		Cvv:         0,
+		Cvv:         1,
 	}
 
 	repo := repository.NewPaymentsRepository()
 	domain := domain.NewPaymentServiceImpl(repo, mockClient)
 
+	var validationError *gatewayerrors.ValidationError
 	response, err := domain.Create(&postPayment)
+	require.Nil(t, response)
 	require.Error(t, err)
+	require.ErrorAs(t, err, &validationError)
 
-	_, err = uuid.Parse(response.Id)
-	require.NoError(t, err)
+	_, err = uuid.Parse(validationError.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, "invalid cvv", validationError.Error())
+	assert.Equal(t, "cvv", validationError.GetFieldError())
+}
 
-	_, err = uuid.Parse(response.Id)
-	require.NoError(t, err)
+func TestPostPayment_InvalidAmount(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockClient := mocks.NewMockClient(ctrl)
 
-	assert.Equal(t, "rejected", response.PaymentStatus)
-	assert.Equal(t, 0, response.CardNumberLastFour)
-	assert.Equal(t, 0, response.ExpiryMonth)
-	assert.Equal(t, 0, response.ExpiryYear)
-	assert.Equal(t, "", response.Currency)
-	assert.Equal(t, 0, response.Amount)
+	postPayment := models.PostPaymentHandlerRequest{
+		CardNumber:  2222405343248877,
+		ExpiryMonth: 4,
+		ExpiryYear:  2025,
+		Currency:    "GBP",
+		Amount:      -1,
+		Cvv:         123,
+	}
+
+	repo := repository.NewPaymentsRepository()
+	domain := domain.NewPaymentServiceImpl(repo, mockClient)
+
+	var validationError *gatewayerrors.ValidationError
+	response, err := domain.Create(&postPayment)
+	require.Nil(t, response)
+	require.Error(t, err)
+	require.ErrorAs(t, err, &validationError)
+
+	_, err = uuid.Parse(validationError.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, "invalid amount", validationError.Error())
+	assert.Equal(t, "amount", validationError.GetFieldError())
 }
 
 func TestPostPayment_NotAuthorized(t *testing.T) {
