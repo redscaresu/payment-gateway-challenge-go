@@ -383,7 +383,7 @@ func TestBankError_ServiceUnavailable(t *testing.T) {
 	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
 }
 
-func TestBankError_ValidationError_CardNumber(t *testing.T) {
+func TestBankError_ValidationError(t *testing.T) {
 
 	id := uuid.NewString()
 	ctrl := gomock.NewController(t)

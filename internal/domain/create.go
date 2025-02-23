@@ -53,11 +53,9 @@ func (p *PaymentServiceImpl) Create(request *models.PostPaymentHandlerRequest) (
 		return nil, err
 	}
 
-	if !validateCurrencyISO(request.Currency) {
-		return &models.PostPaymentResponse{
-			Id:            uuid,
-			PaymentStatus: "rejected",
-		}, errors.New("invalid currency")
+	err = validateCurrencyISO(request.Currency, uuid)
+	if err != nil {
+		return nil, err
 	}
 
 	totalAmount, err := validateAmount(request.Amount)
@@ -173,9 +171,16 @@ var validCurrencyCodes = map[string]bool{
 	"GBP": true,
 }
 
-func validateCurrencyISO(currency string) bool {
+func validateCurrencyISO(currency, id string) error {
 	_, isValid := validCurrencyCodes[currency]
-	return isValid
+	if !isValid {
+		return gatewayerrors.NewValidationError(
+			errors.New("unsupported Currency"),
+			id,
+			"currency",
+		)
+	}
+	return nil
 }
 
 func validateAmount(amount int) (int, error) {

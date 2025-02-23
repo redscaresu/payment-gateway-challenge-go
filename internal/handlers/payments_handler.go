@@ -117,7 +117,6 @@ func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 					w.WriteHeader(http.StatusInternalServerError)
 				}
 				return
-
 			}
 			log.Printf("Unsupported error: %v", err)
 			w.Header().Set(contentTypeHeader, jsonContentType)
