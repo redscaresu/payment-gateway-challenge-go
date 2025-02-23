@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/client"
+	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/gatewayerrors"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
 
@@ -42,11 +43,9 @@ func NewPaymentServiceImpl(repo *repository.PaymentsRepository, client client.Cl
 func (p *PaymentServiceImpl) Create(request *models.PostPaymentHandlerRequest) (*models.PostPaymentResponse, error) {
 
 	uuid := uuid.New().String()
-	if !validateCardNumber(strconv.Itoa(request.CardNumber)) {
-		return &models.PostPaymentResponse{
-			Id:            uuid,
-			PaymentStatus: "rejected",
-		}, errors.New("invalid card number")
+	err := validateCardNumber(strconv.Itoa(request.CardNumber), uuid)
+	if err != nil {
+		return nil, err
 	}
 
 	expiryDate, err := validateExpiryDate(request.ExpiryMonth, request.ExpiryYear)
@@ -127,17 +126,16 @@ func getLastFourCharacters(s string) string {
 	return s[len(s)-4:]
 }
 
-func validateCardNumber(cardNumber string) bool {
+func validateCardNumber(cardNumber, id string) error {
 	if len(cardNumber) < 14 || len(cardNumber) > 19 {
-		return false
+		return gatewayerrors.NewValidationError(
+			errors.New("incorrect card length"),
+			id,
+			"card_number",
+		)
 	}
 
-	for _, c := range cardNumber {
-		if c < '0' || c > '9' {
-			return false
-		}
-	}
-	return true
+	return nil
 }
 
 func validateExpiryDate(requestMonth, requestYear int) (string, error) {

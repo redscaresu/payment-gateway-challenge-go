@@ -103,6 +103,22 @@ func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 				return
 
 			}
+			var validationErr *gatewayerrors.ValidationError
+			if errors.As(err, &validationErr) {
+				log.Printf("validation error on field: %v", validationErr.GetFieldError())
+				errorResponse := &models.PostPayment400Response{
+					Id:            validationErr.ID,
+					PaymentStatus: "rejected",
+				}
+				w.Header().Set(contentTypeHeader, jsonContentType)
+				w.WriteHeader(http.StatusBadRequest)
+				if err := json.NewEncoder(w).Encode(errorResponse); err != nil {
+					log.Printf("Failed to encode error response: %v", err)
+					w.WriteHeader(http.StatusInternalServerError)
+				}
+				return
+
+			}
 			log.Printf("Unsupported error: %v", err)
 			w.Header().Set(contentTypeHeader, jsonContentType)
 			w.WriteHeader(http.StatusInternalServerError)

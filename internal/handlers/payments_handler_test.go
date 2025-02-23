@@ -383,6 +383,72 @@ func TestBankError_ServiceUnavailable(t *testing.T) {
 	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
 }
 
+func TestBankError_ValidationError_CardNumber(t *testing.T) {
+
+	id := uuid.NewString()
+	ctrl := gomock.NewController(t)
+	mockPaymentService := mocks.NewMockPaymentService(ctrl)
+	defer ctrl.Finish()
+
+	mockDomain := &domain.Domain{
+		PaymentService: mockPaymentService,
+	}
+
+	payments := handlers.NewPaymentsHandler(nil, mockDomain)
+
+	r := chi.NewRouter()
+	r.Get("/api/payments/{id}", payments.GetHandler())
+	r.Post("/api/payments", payments.PostHandler())
+
+	httpServer := &http.Server{
+		Addr:    ":8091",
+		Handler: r,
+	}
+
+	go func() error {
+		return httpServer.ListenAndServe()
+	}()
+
+	// Arrange
+	postPayment := &models.PostPaymentHandlerRequest{
+		CardNumber:  123,
+		ExpiryMonth: 4,
+		ExpiryYear:  2025,
+		Currency:    "GBP",
+		Amount:      100,
+		Cvv:         123,
+	}
+
+	body, err := json.Marshal(postPayment)
+	require.NoError(t, err)
+
+	mockedError := gatewayerrors.NewValidationError(
+		errors.New("incorrect card length"),
+		id,
+		"card_number",
+	)
+
+	mockDomain.PaymentService.(*mocks.MockPaymentService).EXPECT().Create(postPayment).Return(nil, mockedError)
+
+	// Act
+	req, err := http.NewRequest("POST", "/api/payments", bytes.NewBuffer(body))
+	require.NoError(t, err)
+
+	// Create a new HTTP request recorder for recording the response
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	var response models.PostPayment400Response
+	err = json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, err)
+
+	// Assert
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, "rejected", response.PaymentStatus)
+	assert.Equal(t, id, response.Id)
+}
+
 func getLastFourCharacters(t *testing.T, i int) string {
 	t.Helper()
 

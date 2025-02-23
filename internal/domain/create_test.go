@@ -6,6 +6,7 @@ import (
 
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/client/mocks"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain"
+	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/gatewayerrors"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
 	"github.com/google/uuid"
@@ -81,18 +82,16 @@ func TestPostPayment_InvalidCardNumber(t *testing.T) {
 	repo := repository.NewPaymentsRepository()
 	domain := domain.NewPaymentServiceImpl(repo, mockClient)
 
+	var validationError *gatewayerrors.ValidationError
 	response, err := domain.Create(&postPayment)
+	require.Nil(t, response)
 	require.Error(t, err)
+	require.ErrorAs(t, err, &validationError)
 
-	_, err = uuid.Parse(response.Id)
-	require.NoError(t, err)
-
-	assert.Equal(t, "rejected", response.PaymentStatus)
-	assert.Equal(t, 0, response.CardNumberLastFour)
-	assert.Equal(t, 0, response.ExpiryMonth)
-	assert.Equal(t, 0, response.ExpiryYear)
-	assert.Equal(t, "", response.Currency)
-	assert.Equal(t, 0, response.Amount)
+	_, err = uuid.Parse(validationError.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, "incorrect card length", validationError.Error())
+	assert.Equal(t, "card_number", validationError.GetFieldError())
 }
 
 func TestPostPayment_InvalidExpiryDate(t *testing.T) {

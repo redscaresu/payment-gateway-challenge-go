@@ -15,3 +15,30 @@ func NewBankError(err error, statusCode int) *BankError {
 		StatusCode: statusCode,
 	}
 }
+
+type ValidationError struct {
+	Err   error
+	Field string
+	ID    string
+}
+
+func (ve *ValidationError) Error() string {
+	return ve.Err.Error()
+}
+
+func (ve *ValidationError) GetFieldError() string {
+	return ve.Field
+}
+
+func (ve *ValidationError) GetID() string {
+	return ve.ID
+
+}
+
+func NewValidationError(err error, id, field string) *ValidationError {
+	return &ValidationError{
+		Err:   err,
+		Field: field,
+		ID:    id,
+	}
+}

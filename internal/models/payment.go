@@ -60,3 +60,8 @@ type PostPaymentBankResponse struct {
 	Authorised        bool   `json:"authorized"`
 	AuthorizationCode string `json:"authorization_code"`
 }
+
+type PostPayment400Response struct {
+	Id            string `json:"id"`
+	PaymentStatus string `json:"payment_status"`
+}
