@@ -1,5 +1,11 @@
 package models
 
+/*
+
+If I had more time I would completely split out the models used in the handlers from the models used throughout the program.  Because I dont like the presentation tier being tied to implementation, for example in the PostPayment handler I am just reusing PostPaymentResponse for the happy path and possible a new validation error.
+
+*/
+
 type PostPaymentHandlerRequest struct {
 	CardNumber  int    `json:"card_number"`
 	ExpiryMonth int    `json:"expiry_month"`

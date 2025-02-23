@@ -15,6 +15,15 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+/*
+Again do not use t.run for these tests, this costs a bit more in terms of compute but makes it easier to read I think.  However the downside is that there is a fair bit of duplicated set up for each test, these could be reduced by creating some more helpers and maybe even a wrapper.
+
+I am mocking the client so that we dont have to make any calls outside of the service for the unit tests but maybe instead of mocking I could of just used the mountebank as I did in the integration tests.  Some mocking might be necessary to trigger all the paths.
+
+If I had more time I would have create extensive table tests against each validation instead of the basic ones I have below.
+
+*/
+
 func TestPostPayment_Authorized(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

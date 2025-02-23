@@ -14,6 +14,12 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+/*
+  For the handlers I split away as much of the business logic into the domain tier to keep the handlers as clean as possible.  Also for the case of the get I did a direct call to the storage layer from the handler, if we need more complex logic in time I would eventually shift it into the domain but for the purposes of YAGNI for the timebeing only the POST has a corresponding domain method.  The post does contain some more complicated logic so for the purposes of cleanliness I split out the code into the domain.
+
+  The main thing the handlers do is check whether there is an error being returned or not and if there is make sure that the error is correctly handled.
+*/
+
 type HandlerErrorResponse struct {
 	Message string `json:"message"`
 }

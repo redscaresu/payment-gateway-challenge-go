@@ -21,6 +21,10 @@ import (
 	"gotest.tools/assert"
 )
 
+/* integration tests use the real service rather than mocks, I limited these due to time constraints but also because they take longer to run than the unit tests so it could end up slowing are pipeline if we make these complete.
+As it stands now we test the happy path, 1 validation (in this case card number) and test when the upstream fails.
+*/
+
 func TestPostPaymentHandler_Integration(t *testing.T) {
 	ctx, cli, containerID := startMountebankContainer(t)
 	defer stopMountebankContainer(ctx, cli, containerID)
