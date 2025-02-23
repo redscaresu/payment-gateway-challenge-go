@@ -13,6 +13,10 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+type HandlerErrorResponse struct {
+	Message string `json:"message"`
+}
+
 const (
 	contentTypeHeader = "Content-Type"
 	jsonContentType   = "application/json"
@@ -87,7 +91,15 @@ func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 			if ok {
 				if be.StatusCode == http.StatusServiceUnavailable {
 					log.Printf("Error processing payment: %v", be)
+					errorResponse := HandlerErrorResponse{
+						Message: "The acquiring bank is currently unavailable. Please try again later.",
+					}
+					w.Header().Set(contentTypeHeader, jsonContentType)
 					w.WriteHeader(http.StatusServiceUnavailable)
+					if err := json.NewEncoder(w).Encode(errorResponse); err != nil {
+						log.Printf("Failed to encode error response: %v", err)
+						w.WriteHeader(http.StatusInternalServerError)
+					}
 					return
 				}
 			}

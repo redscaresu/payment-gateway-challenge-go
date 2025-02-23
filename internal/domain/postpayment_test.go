@@ -32,7 +32,7 @@ func TestPostPayment_Authorized(t *testing.T) {
 		CardNumber: "2222405343248877",
 		ExpiryDate: "4/2025",
 		Currency:   "GBP",
-		Amount:     10000,
+		Amount:     100,
 		CVV:        "123",
 	})).Return((&models.PostPaymentBankResponse{
 		Authorised:        true,
@@ -210,7 +210,7 @@ func TestPostPayment_NotAuthorized(t *testing.T) {
 		CardNumber: "2222405343248877",
 		ExpiryDate: "4/2025",
 		Currency:   "GBP",
-		Amount:     10000,
+		Amount:     100,
 		CVV:        "123",
 	})).Return((&models.PostPaymentBankResponse{
 		// test that we can handle a declined payment
