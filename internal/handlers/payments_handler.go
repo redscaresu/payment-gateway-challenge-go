@@ -86,7 +86,7 @@ func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 			return
 		}
 
-		domainResponse, err := ph.domain.PaymentService.PostPayment(&paymentRequest)
+		domainResponse, err := ph.domain.PaymentService.Create(&paymentRequest)
 		if err != nil {
 			var bankErr *gatewayerrors.BankError
 			if errors.As(err, &bankErr) && bankErr.StatusCode == http.StatusServiceUnavailable {

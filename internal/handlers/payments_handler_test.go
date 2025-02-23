@@ -145,7 +145,7 @@ func TestPostPaymentHandler(t *testing.T) {
 	require.NoError(t, err)
 
 	postPaymentResponseID := uuid.New().String()
-	mockDomain.PaymentService.(*mocks.MockPaymentService).EXPECT().PostPayment(postPayment).Return(&models.PostPaymentResponse{
+	mockDomain.PaymentService.(*mocks.MockPaymentService).EXPECT().Create(postPayment).Return(&models.PostPaymentResponse{
 		Id:                 postPaymentResponseID,
 		PaymentStatus:      "authorized",
 		CardNumberLastFour: 8877,
@@ -295,7 +295,7 @@ func TestBankError_DomainError(t *testing.T) {
 	body, err := json.Marshal(postPayment)
 	require.NoError(t, err)
 
-	mockDomain.PaymentService.(*mocks.MockPaymentService).EXPECT().PostPayment(postPayment).Return(nil, errors.New("boom"))
+	mockDomain.PaymentService.(*mocks.MockPaymentService).EXPECT().Create(postPayment).Return(nil, errors.New("boom"))
 
 	// Act
 	req, err := http.NewRequest("POST", "/api/payments", bytes.NewBuffer(body))
@@ -363,7 +363,7 @@ func TestBankError_ServiceUnavailable(t *testing.T) {
 		errors.New("acquiring bank unavailble"),
 		http.StatusServiceUnavailable,
 	)
-	mockDomain.PaymentService.(*mocks.MockPaymentService).EXPECT().PostPayment(postPayment).Return(nil, mockedError)
+	mockDomain.PaymentService.(*mocks.MockPaymentService).EXPECT().Create(postPayment).Return(nil, mockedError)
 
 	// Act
 	req, err := http.NewRequest("POST", "/api/payments", bytes.NewBuffer(body))

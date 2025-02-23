@@ -40,17 +40,17 @@ func (m *MockPaymentService) EXPECT() *MockPaymentServiceMockRecorder {
 	return m.recorder
 }
 
-// PostPayment mocks base method.
-func (m *MockPaymentService) PostPayment(request *models.PostPaymentHandlerRequest) (*models.PostPaymentResponse, error) {
+// Create mocks base method.
+func (m *MockPaymentService) Create(request *models.PostPaymentHandlerRequest) (*models.PostPaymentResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PostPayment", request)
+	ret := m.ctrl.Call(m, "Create", request)
 	ret0, _ := ret[0].(*models.PostPaymentResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// PostPayment indicates an expected call of PostPayment.
-func (mr *MockPaymentServiceMockRecorder) PostPayment(request any) *gomock.Call {
+// Create indicates an expected call of Create.
+func (mr *MockPaymentServiceMockRecorder) Create(request any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostPayment", reflect.TypeOf((*MockPaymentService)(nil).PostPayment), request)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockPaymentService)(nil).Create), request)
 }

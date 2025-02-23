@@ -42,7 +42,7 @@ func TestPostPayment_Authorized(t *testing.T) {
 	repo := repository.NewPaymentsRepository()
 	domain := domain.NewPaymentServiceImpl(repo, mockClient)
 
-	response, err := domain.PostPayment(&postPayment)
+	response, err := domain.Create(&postPayment)
 	require.NoError(t, err)
 
 	_, err = uuid.Parse(response.Id)
@@ -81,7 +81,7 @@ func TestPostPayment_InvalidCardNumber(t *testing.T) {
 	repo := repository.NewPaymentsRepository()
 	domain := domain.NewPaymentServiceImpl(repo, mockClient)
 
-	response, err := domain.PostPayment(&postPayment)
+	response, err := domain.Create(&postPayment)
 	require.Error(t, err)
 
 	_, err = uuid.Parse(response.Id)
@@ -113,7 +113,7 @@ func TestPostPayment_InvalidExpiryDate(t *testing.T) {
 	repo := repository.NewPaymentsRepository()
 	domain := domain.NewPaymentServiceImpl(repo, mockClient)
 
-	response, err := domain.PostPayment(&postPayment)
+	response, err := domain.Create(&postPayment)
 	require.Error(t, err)
 
 	_, err = uuid.Parse(response.Id)
@@ -144,7 +144,7 @@ func TestPostPayment_InvalidCurrency(t *testing.T) {
 	repo := repository.NewPaymentsRepository()
 	domain := domain.NewPaymentServiceImpl(repo, mockClient)
 
-	response, err := domain.PostPayment(&postPayment)
+	response, err := domain.Create(&postPayment)
 	require.Error(t, err)
 
 	_, err = uuid.Parse(response.Id)
@@ -175,7 +175,7 @@ func TestPostPayment_InvalidCVV(t *testing.T) {
 	repo := repository.NewPaymentsRepository()
 	domain := domain.NewPaymentServiceImpl(repo, mockClient)
 
-	response, err := domain.PostPayment(&postPayment)
+	response, err := domain.Create(&postPayment)
 	require.Error(t, err)
 
 	_, err = uuid.Parse(response.Id)
@@ -221,7 +221,7 @@ func TestPostPayment_NotAuthorized(t *testing.T) {
 	repo := repository.NewPaymentsRepository()
 	domain := domain.NewPaymentServiceImpl(repo, mockClient)
 
-	response, err := domain.PostPayment(&postPayment)
+	response, err := domain.Create(&postPayment)
 	require.NoError(t, err)
 
 	_, err = uuid.Parse(response.Id)

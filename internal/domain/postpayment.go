@@ -23,7 +23,7 @@ func NewDomain(paymentService PaymentService) *Domain {
 }
 
 type PaymentService interface {
-	PostPayment(request *models.PostPaymentHandlerRequest) (*models.PostPaymentResponse, error)
+	Create(request *models.PostPaymentHandlerRequest) (*models.PostPaymentResponse, error)
 }
 
 type PaymentServiceImpl struct {
@@ -39,7 +39,7 @@ func NewPaymentServiceImpl(repo *repository.PaymentsRepository, client client.Cl
 	}
 }
 
-func (p *PaymentServiceImpl) PostPayment(request *models.PostPaymentHandlerRequest) (*models.PostPaymentResponse, error) {
+func (p *PaymentServiceImpl) Create(request *models.PostPaymentHandlerRequest) (*models.PostPaymentResponse, error) {
 
 	uuid := uuid.New().String()
 	if !validateCardNumber(strconv.Itoa(request.CardNumber)) {
