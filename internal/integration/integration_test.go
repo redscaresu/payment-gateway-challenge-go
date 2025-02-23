@@ -6,20 +6,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/api"
+	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/handlers"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"gotest.tools/assert"
 )
 
 func TestPostPaymentHandler_Integration(t *testing.T) {
-	// Start Mountebank container
 	ctx, cli, containerID := startMountebankContainer(t)
 	defer stopMountebankContainer(ctx, cli, containerID)
 
@@ -29,7 +31,6 @@ func TestPostPaymentHandler_Integration(t *testing.T) {
 		api.Run(ctx, ":8090")
 	}()
 
-	// Create the payment request
 	postPayment := &models.PostPaymentHandlerRequest{
 		CardNumber:  2222405343248877,
 		ExpiryMonth: 4,
@@ -42,20 +43,30 @@ func TestPostPaymentHandler_Integration(t *testing.T) {
 	body, err := json.Marshal(postPayment)
 	require.NoError(t, err)
 
-	// Create a new HTTP request for testing
 	req, err := http.NewRequest("POST", "http://localhost:8090/api/payments", bytes.NewBuffer(body))
 	require.NoError(t, err)
 
 	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 
-	// Check the HTTP status code in the response
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	// Decode the response body
 	var response models.PostPaymentResponse
 	err = json.NewDecoder(resp.Body).Decode(&response)
 	require.NoError(t, err)
+
+	_, err = uuid.Parse(response.Id)
+	assert.NilError(t, err)
+	assert.Equal(t, "authorized", response.PaymentStatus)
+
+	fourChar := getLastFourCharacters(t, postPayment.CardNumber)
+	fourInt, err := strconv.Atoi(fourChar)
+	require.NoError(t, err)
+	assert.Equal(t, fourInt, response.CardNumberLastFour)
+	assert.Equal(t, postPayment.ExpiryMonth, response.ExpiryMonth)
+	assert.Equal(t, postPayment.ExpiryYear, response.ExpiryYear)
+	assert.Equal(t, postPayment.Currency, response.Currency)
+	assert.Equal(t, postPayment.Amount, response.Amount)
 
 	reqGet, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:8090/api/payments/%s", response.Id), bytes.NewBuffer(body))
 	require.NoError(t, err)
@@ -74,6 +85,80 @@ func TestPostPaymentHandler_Integration(t *testing.T) {
 	assert.Equal(t, 2025, response.ExpiryYear)
 	assert.Equal(t, "GBP", response.Currency)
 	assert.Equal(t, 100, response.Amount)
+}
+
+func TestPostPaymentHandler_IntegrationCardNumberValidationError(t *testing.T) {
+	ctx, cli, containerID := startMountebankContainer(t)
+	defer stopMountebankContainer(ctx, cli, containerID)
+
+	api := api.New()
+
+	go func() {
+		api.Run(ctx, ":8090")
+	}()
+
+	postPayment := &models.PostPaymentHandlerRequest{
+		CardNumber:  1,
+		ExpiryMonth: 4,
+		ExpiryYear:  2025,
+		Currency:    "GBP",
+		Amount:      100,
+		Cvv:         123,
+	}
+
+	body, err := json.Marshal(postPayment)
+	require.NoError(t, err)
+
+	req, err := http.NewRequest("POST", "http://localhost:8090/api/payments", bytes.NewBuffer(body))
+	require.NoError(t, err)
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+
+	var response models.PostPayment400Response
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	require.NoError(t, err)
+
+	_, err = uuid.Parse(response.Id)
+	assert.NilError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	assert.Equal(t, "rejected", response.PaymentStatus)
+}
+
+func TestPostPaymentHandler_IntegrationBankError(t *testing.T) {
+	ctx, cli, containerID := startMountebankContainer(t)
+	defer stopMountebankContainer(ctx, cli, containerID)
+
+	api := api.New()
+
+	go func() {
+		api.Run(ctx, ":8090")
+	}()
+
+	postPayment := &models.PostPaymentHandlerRequest{
+		CardNumber:  2222405343248870,
+		ExpiryMonth: 4,
+		ExpiryYear:  2025,
+		Currency:    "GBP",
+		Amount:      100,
+		Cvv:         123,
+	}
+
+	body, err := json.Marshal(postPayment)
+	require.NoError(t, err)
+
+	req, err := http.NewRequest("POST", "http://localhost:8090/api/payments", bytes.NewBuffer(body))
+	require.NoError(t, err)
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+
+	var response handlers.HandlerErrorResponse
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
+	assert.Equal(t, "The acquiring bank is currently unavailable. Please try again later.", response.Message)
 }
 
 func startMountebankContainer(t *testing.T) (context.Context, *client.Client, string) {
@@ -109,4 +194,12 @@ func startMountebankContainer(t *testing.T) (context.Context, *client.Client, st
 func stopMountebankContainer(ctx context.Context, cli *client.Client, containerID string) {
 	cli.ContainerStop(ctx, containerID, container.StopOptions{})
 	cli.ContainerRemove(ctx, containerID, container.RemoveOptions{})
+}
+
+func getLastFourCharacters(t *testing.T, i int) string {
+	t.Helper()
+
+	s := strconv.Itoa(i)
+	require.Equal(t, 16, len(s))
+	return s[len(s)-4:]
 }
