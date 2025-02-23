@@ -57,6 +57,6 @@ type PostPaymentBankRequest struct {
 }
 
 type PostPaymentBankResponse struct {
-	Authorised        bool   `json:"authorised"`
+	Authorised        bool   `json:"authorized"`
 	AuthorizationCode string `json:"authorization_code"`
 }
