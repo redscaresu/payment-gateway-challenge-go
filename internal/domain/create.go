@@ -48,12 +48,9 @@ func (p *PaymentServiceImpl) Create(request *models.PostPaymentHandlerRequest) (
 		return nil, err
 	}
 
-	expiryDate, err := validateExpiryDate(request.ExpiryMonth, request.ExpiryYear)
+	expiryDate, err := validateExpiryDate(request.ExpiryMonth, request.ExpiryYear, uuid)
 	if err != nil {
-		return &models.PostPaymentResponse{
-			Id:            uuid,
-			PaymentStatus: "rejected",
-		}, errors.New("invalid expiry date")
+		return nil, err
 	}
 
 	if !validateCurrencyISO(request.Currency) {
@@ -138,19 +135,33 @@ func validateCardNumber(cardNumber, id string) error {
 	return nil
 }
 
-func validateExpiryDate(requestMonth, requestYear int) (string, error) {
+func validateExpiryDate(requestMonth, requestYear int, id string) (string, error) {
 	now := time.Now()
 	month := int(now.Month())
 	year := now.Year()
 
-	if requestMonth < month ||
-		requestMonth > 12 ||
-		requestMonth < 1 {
-		return "", errors.New("invalid expiry year")
+	if requestMonth < month || requestMonth > 12 || requestMonth < 1 {
+		return "", gatewayerrors.NewValidationError(
+			errors.New("invalid expiry month"),
+			id,
+			"expiry_month",
+		)
 	}
 
-	if requestYear < year && requestMonth < month {
-		return "", errors.New("invalid expiry date")
+	if requestYear < year {
+		return "", gatewayerrors.NewValidationError(
+			errors.New("year in past"),
+			id,
+			"expiry_year",
+		)
+	}
+
+	if requestMonth < month {
+		return "", gatewayerrors.NewValidationError(
+			errors.New("month in past"),
+			id,
+			"expiry_month",
+		)
 	}
 
 	return strconv.Itoa(requestMonth) + "/" + strconv.Itoa(requestYear), nil

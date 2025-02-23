@@ -100,30 +100,28 @@ func TestPostPayment_InvalidExpiryDate(t *testing.T) {
 	mockClient := mocks.NewMockClient(ctrl)
 
 	postPayment := models.PostPaymentHandlerRequest{
+		// this card number is too short and should trigger an error
 		CardNumber:  2222405343248877,
-		ExpiryMonth: 0,
-
-		ExpiryYear: 2000,
-		Currency:   "GBP",
-		Amount:     100,
-		Cvv:        123,
+		ExpiryMonth: 4,
+		ExpiryYear:  2024,
+		Currency:    "GBP",
+		Amount:      100,
+		Cvv:         123,
 	}
 
 	repo := repository.NewPaymentsRepository()
 	domain := domain.NewPaymentServiceImpl(repo, mockClient)
 
+	var validationError *gatewayerrors.ValidationError
 	response, err := domain.Create(&postPayment)
+	require.Nil(t, response)
 	require.Error(t, err)
+	require.ErrorAs(t, err, &validationError)
 
-	_, err = uuid.Parse(response.Id)
-	require.NoError(t, err)
-
-	assert.Equal(t, "rejected", response.PaymentStatus)
-	assert.Equal(t, 0, response.CardNumberLastFour)
-	assert.Equal(t, 0, response.ExpiryMonth)
-	assert.Equal(t, 0, response.ExpiryYear)
-	assert.Equal(t, "", response.Currency)
-	assert.Equal(t, 0, response.Amount)
+	_, err = uuid.Parse(validationError.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, "year in past", validationError.Error())
+	assert.Equal(t, "expiry_year", validationError.GetFieldError())
 }
 
 func TestPostPayment_InvalidCurrency(t *testing.T) {
