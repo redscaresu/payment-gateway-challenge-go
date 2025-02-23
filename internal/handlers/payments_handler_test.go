@@ -1,17 +1,21 @@
-package handlers
+package handlers_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"testing"
 
+	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/api"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain/mocks"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/gatewayerrors"
+	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/handlers"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
 	"github.com/go-chi/chi/v5"
@@ -44,7 +48,7 @@ func TestGetPaymentHandler(t *testing.T) {
 		Amount:             100,
 	}
 
-	payments := NewPaymentsHandler(ps, nil)
+	payments := handlers.NewPaymentsHandler(ps, nil)
 
 	r := chi.NewRouter()
 	r.Get("/api/payments/{id}", payments.GetHandler())
@@ -115,7 +119,7 @@ func TestPostPaymentHandler(t *testing.T) {
 		PaymentService: mockPaymentService,
 	}
 
-	payments := NewPaymentsHandler(ps, mockDomain)
+	payments := handlers.NewPaymentsHandler(ps, mockDomain)
 
 	r := chi.NewRouter()
 	r.Get("/api/payments/{id}", payments.GetHandler())
@@ -181,13 +185,13 @@ func TestPostPaymentHandler(t *testing.T) {
 	assert.Equal(t, postPayment.Currency, response.Currency)
 	assert.Equal(t, postPayment.Amount, response.Amount)
 	assert.Equal(t, "authorized", response.PaymentStatus)
-	assert.Equal(t, "application/json", w.Header().Get(contentTypeHeader))
+	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
 
 }
 
 func TestPostPaymentHandler_NoBody(t *testing.T) {
 
-	payments := NewPaymentsHandler(nil, nil)
+	payments := handlers.NewPaymentsHandler(nil, nil)
 
 	r := chi.NewRouter()
 	r.Get("/api/payments/{id}", payments.GetHandler())
@@ -217,7 +221,7 @@ func TestPostPaymentHandler_NoBody(t *testing.T) {
 
 func TestPostPaymentHandler_InvalidJson(t *testing.T) {
 
-	payments := NewPaymentsHandler(nil, nil)
+	payments := handlers.NewPaymentsHandler(nil, nil)
 
 	r := chi.NewRouter()
 	r.Get("/api/payments/{id}", payments.GetHandler())
@@ -266,7 +270,7 @@ func TestBankError_DomainError(t *testing.T) {
 		PaymentService: mockPaymentService,
 	}
 
-	payments := NewPaymentsHandler(ps, mockDomain)
+	payments := handlers.NewPaymentsHandler(ps, mockDomain)
 
 	r := chi.NewRouter()
 	r.Get("/api/payments/{id}", payments.GetHandler())
@@ -330,7 +334,7 @@ func TestBankError_ServiceUnavailable(t *testing.T) {
 		PaymentService: mockPaymentService,
 	}
 
-	payments := NewPaymentsHandler(ps, mockDomain)
+	payments := handlers.NewPaymentsHandler(ps, mockDomain)
 
 	r := chi.NewRouter()
 	r.Get("/api/payments/{id}", payments.GetHandler())
@@ -373,13 +377,69 @@ func TestBankError_ServiceUnavailable(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 
-	var response HandlerErrorResponse
+	var response handlers.HandlerErrorResponse
 	err = json.NewDecoder(w.Body).Decode(&response)
 	require.NoError(t, err)
 
 	// Assert
 	assert.Equal(t, "The acquiring bank is currently unavailable. Please try again later.", response.Message)
 	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+}
+
+func TestPostPaymentHandler_Integration(t *testing.T) {
+	// Set up the repository and domain
+	ctx := context.Background()
+	api := api.New()
+
+	go func() {
+		api.Run(ctx, ":8090")
+	}()
+
+	// Create the payment request
+	postPayment := &models.PostPaymentHandlerRequest{
+		CardNumber:  2222405343248877,
+		ExpiryMonth: 4,
+		ExpiryYear:  2025,
+		Currency:    "GBP",
+		Amount:      100,
+		Cvv:         123,
+	}
+
+	body, err := json.Marshal(postPayment)
+	require.NoError(t, err)
+
+	// Create a new HTTP request for testing
+	req, err := http.NewRequest("POST", "http://localhost:8090/api/payments", bytes.NewBuffer(body))
+	require.NoError(t, err)
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+
+	// Check the HTTP status code in the response
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	// Decode the response body
+	var response models.PostPaymentResponse
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	require.NoError(t, err)
+
+	reqGet, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:8090/api/payments/%s", response.Id), bytes.NewBuffer(body))
+	require.NoError(t, err)
+
+	respGet, err := http.DefaultClient.Do(reqGet)
+	require.NoError(t, err)
+
+	var getHandlerResponse models.GetPaymentHandlerResponse
+	err = json.NewDecoder(respGet.Body).Decode(&getHandlerResponse)
+	require.NoError(t, err)
+
+	assert.Equal(t, getHandlerResponse.Id, response.Id)
+	assert.Equal(t, "authorized", response.PaymentStatus)
+	assert.Equal(t, 8877, response.CardNumberLastFour)
+	assert.Equal(t, 4, response.ExpiryMonth)
+	assert.Equal(t, 2025, response.ExpiryYear)
+	assert.Equal(t, "GBP", response.Currency)
+	assert.Equal(t, 100, response.Amount)
 }
 
 func getLastFourCharacters(t *testing.T, i int) string {
