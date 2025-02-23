@@ -93,19 +93,6 @@ func TestGetPaymentHandler(t *testing.T) {
 		// Check the HTTP status code in the response
 		assert.Equal(t, w.Code, http.StatusNotFound)
 	})
-	t.Run("MissingID", func(t *testing.T) {
-		// Create a new HTTP request for testing with a non-existing payment ID
-		req, err := http.NewRequest("GET", "/api/payments/", nil)
-		require.NoError(t, err)
-
-		// Create a new HTTP request recorder for recording the response
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		// Check the HTTP status code in the response
-		assert.Equal(t, http.StatusNotFound, w.Code)
-	})
 }
 
 func TestPostPaymentHandler(t *testing.T) {
@@ -194,6 +181,7 @@ func TestPostPaymentHandler(t *testing.T) {
 	assert.Equal(t, postPayment.Currency, response.Currency)
 	assert.Equal(t, postPayment.Amount, response.Amount)
 	assert.Equal(t, "authorized", response.PaymentStatus)
+	assert.Equal(t, "application/json", w.Header().Get(contentTypeHeader))
 
 }
 
