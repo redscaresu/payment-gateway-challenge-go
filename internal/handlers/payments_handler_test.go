@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain/mocks"
+	genericerrors "github.com/cko-recruitment/payment-gateway-challenge-go/internal/errors"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
 	"github.com/go-chi/chi/v5"
@@ -253,6 +255,82 @@ func TestPostPaymentHandler_InvalidJson(t *testing.T) {
 
 	// Check the HTTP status code in the response
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestBankError_ServiceUnavailable(t *testing.T) {
+
+	expectedPayment := models.PostPaymentResponse{
+		Id:                 "test-id",
+		PaymentStatus:      "test-successful-status",
+		CardNumberLastFour: 1234,
+		ExpiryMonth:        10,
+		ExpiryYear:         2035,
+		Currency:           "GBP",
+		Amount:             100,
+	}
+	ps := repository.NewPaymentsRepository()
+	ps.AddPayment(expectedPayment)
+	ctrl := gomock.NewController(t)
+	mockPaymentService := mocks.NewMockPaymentService(ctrl)
+	defer ctrl.Finish()
+
+	mockDomain := &domain.Domain{
+		PaymentService: mockPaymentService,
+	}
+
+	payments := NewPaymentsHandler(ps, mockDomain)
+
+	r := chi.NewRouter()
+	r.Get("/api/payments/{id}", payments.GetHandler())
+	r.Post("/api/payments", payments.PostHandler())
+
+	httpServer := &http.Server{
+		Addr:    ":8091",
+		Handler: r,
+	}
+
+	go func() error {
+		return httpServer.ListenAndServe()
+	}()
+
+	// Arrange
+	postPayment := &models.PostPaymentHandlerRequest{
+		CardNumber:  2222405343248877,
+		ExpiryMonth: 4,
+		ExpiryYear:  2025,
+		Currency:    "GBP",
+		Amount:      100,
+		Cvv:         123,
+	}
+
+	body, err := json.Marshal(postPayment)
+	require.NoError(t, err)
+
+	mockedError := genericerrors.NewBankError(
+		errors.New("acquiring bank unavailble"),
+		http.StatusServiceUnavailable,
+	)
+	mockDomain.PaymentService.(*mocks.MockPaymentService).EXPECT().PostPayment(postPayment).Return(nil, mockedError)
+
+	// Act
+	req, err := http.NewRequest("POST", "/api/payments", bytes.NewBuffer(body))
+	require.NoError(t, err)
+
+	// Create a new HTTP request recorder for recording the response
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	// Check the HTTP status code in the response
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+
+	var response HandlerErrorResponse
+	err = json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, err)
+
+	// Assert
+	assert.Equal(t, "The acquiring bank is currently unavailable. Please try again later.", response.Message)
+
 }
 
 func getLastFourCharacters(t *testing.T, i int) string {

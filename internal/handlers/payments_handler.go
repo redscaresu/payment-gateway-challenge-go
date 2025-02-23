@@ -102,7 +102,22 @@ func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 					}
 					return
 				}
+				log.Printf("The acquiring bank has an error processing payment: %v", be)
+				errorResponse := HandlerErrorResponse{
+					Message: "The acquiring bank has an error",
+				}
+				w.Header().Set(contentTypeHeader, jsonContentType)
+				w.WriteHeader(http.StatusInternalServerError)
+				if err := json.NewEncoder(w).Encode(errorResponse); err != nil {
+					log.Printf("Failed to encode error response: %v", err)
+					w.WriteHeader(http.StatusInternalServerError)
+				}
+				return
 			}
+			log.Printf("Unsupported acquiring bank error processing payment: %v", err)
+			w.Header().Set(contentTypeHeader, jsonContentType)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 
 		w.Header().Set(contentTypeHeader, jsonContentType)
