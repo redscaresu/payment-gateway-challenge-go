@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	genericerrors "github.com/cko-recruitment/payment-gateway-challenge-go/internal/errors"
+	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/gatewayerrors"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 )
 
@@ -49,7 +49,7 @@ func (c *HTTPClient) PostBankPayment(request *models.PostPaymentBankRequest) (*m
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusServiceUnavailable {
-		return nil, genericerrors.NewBankError(
+		return nil, gatewayerrors.NewBankError(
 			errors.New("acquiring bank unavailble"),
 			http.StatusServiceUnavailable,
 		)

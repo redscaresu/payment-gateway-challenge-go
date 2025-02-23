@@ -1,4 +1,4 @@
-package genericerrors
+package gatewayerrors
 
 type BankError struct {
 	Err        error

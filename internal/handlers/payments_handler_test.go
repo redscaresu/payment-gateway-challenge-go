@@ -11,7 +11,7 @@ import (
 
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/domain/mocks"
-	genericerrors "github.com/cko-recruitment/payment-gateway-challenge-go/internal/errors"
+	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/gatewayerrors"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
 	"github.com/go-chi/chi/v5"
@@ -55,10 +55,8 @@ func TestGetPaymentHandler(t *testing.T) {
 		Handler: r,
 	}
 
-	go func() {
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			t.Errorf("could not listen on %s due to %s", httpServer.Addr, err.Error())
-		}
+	go func() error {
+		return httpServer.ListenAndServe()
 	}()
 
 	t.Run("PaymentFound", func(t *testing.T) {
@@ -128,10 +126,8 @@ func TestPostPaymentHandler(t *testing.T) {
 		Handler: r,
 	}
 
-	go func() {
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			t.Errorf("could not listen on %s due to %s", httpServer.Addr, err.Error())
-		}
+	go func() error {
+		return httpServer.ListenAndServe()
 	}()
 
 	// Arrange
@@ -202,10 +198,8 @@ func TestPostPaymentHandler_NoBody(t *testing.T) {
 		Handler: r,
 	}
 
-	go func() {
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			t.Errorf("could not listen on %s due to %s", httpServer.Addr, err.Error())
-		}
+	go func() error {
+		return httpServer.ListenAndServe()
 	}()
 
 	// Create a new HTTP request for testing with a non-existing payment ID
@@ -234,10 +228,8 @@ func TestPostPaymentHandler_InvalidJson(t *testing.T) {
 		Handler: r,
 	}
 
-	go func() {
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			t.Errorf("could not listen on %s due to %s", httpServer.Addr, err.Error())
-		}
+	go func() error {
+		return httpServer.ListenAndServe()
 	}()
 
 	// Create a new HTTP request for testing with a non-existing payment ID
@@ -285,10 +277,8 @@ func TestBankError_DomainError(t *testing.T) {
 		Handler: r,
 	}
 
-	go func() {
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			t.Errorf("could not listen on %s due to %s", httpServer.Addr, err.Error())
-		}
+	go func() error {
+		return httpServer.ListenAndServe()
 	}()
 
 	// Arrange
@@ -351,10 +341,8 @@ func TestBankError_ServiceUnavailable(t *testing.T) {
 		Handler: r,
 	}
 
-	go func() {
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			t.Errorf("could not listen on %s due to %s", httpServer.Addr, err.Error())
-		}
+	go func() error {
+		return httpServer.ListenAndServe()
 	}()
 
 	// Arrange
@@ -370,7 +358,7 @@ func TestBankError_ServiceUnavailable(t *testing.T) {
 	body, err := json.Marshal(postPayment)
 	require.NoError(t, err)
 
-	mockedError := genericerrors.NewBankError(
+	mockedError := gatewayerrors.NewBankError(
 		errors.New("acquiring bank unavailble"),
 		http.StatusServiceUnavailable,
 	)
