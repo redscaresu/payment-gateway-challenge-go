@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 
@@ -87,21 +88,20 @@ func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 
 		domainResponse, err := ph.domain.PaymentService.PostPayment(&paymentRequest)
 		if err != nil {
-			be, ok := err.(*gatewayerrors.BankError)
-			if ok {
-				if be.StatusCode == http.StatusServiceUnavailable {
-					log.Printf("Error processing payment: %v", be)
-					errorResponse := HandlerErrorResponse{
-						Message: "The acquiring bank is currently unavailable. Please try again later.",
-					}
-					w.Header().Set(contentTypeHeader, jsonContentType)
-					w.WriteHeader(http.StatusServiceUnavailable)
-					if err := json.NewEncoder(w).Encode(errorResponse); err != nil {
-						log.Printf("Failed to encode error response: %v", err)
-						w.WriteHeader(http.StatusInternalServerError)
-					}
-					return
+			var bankErr *gatewayerrors.BankError
+			if errors.As(err, &bankErr) && bankErr.StatusCode == http.StatusServiceUnavailable {
+				log.Printf("Error processing payment: %v", err)
+				errorResponse := HandlerErrorResponse{
+					Message: "The acquiring bank is currently unavailable. Please try again later.",
 				}
+				w.Header().Set(contentTypeHeader, jsonContentType)
+				w.WriteHeader(http.StatusServiceUnavailable)
+				if err := json.NewEncoder(w).Encode(errorResponse); err != nil {
+					log.Printf("Failed to encode error response: %v", err)
+					w.WriteHeader(http.StatusInternalServerError)
+				}
+				return
+
 			}
 			log.Printf("Unsupported error: %v", err)
 			w.Header().Set(contentTypeHeader, jsonContentType)
