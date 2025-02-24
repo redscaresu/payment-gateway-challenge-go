@@ -19,10 +19,10 @@ This template uses Swaggo to autodocument the API and create a Swagger spec. The
 
 ### Demo Playbook
 
-run the application in debug mode via vscode.
+run the application in debug mode via vscode and run docker compose up
 
 #### Happy Path PostPayment authorized
-
+```
 curl -X POST http://localhost:8090/api/payments \
 -H "Content-Type: application/json" \
 -d '{
@@ -33,17 +33,18 @@ curl -X POST http://localhost:8090/api/payments \
   "amount": 100,
   "cvv": 123
 }' | jq .
+```
 
 #### happy path Get Authorized Payment
-
+```
 curl -X GET http://localhost:8090/api/payments/$id | jq .
-
+```
 #### unhappy path Get Payment does not exist
-
+```
 curl -vvvv -X GET http://localhost:8090/api/payments/foo | jq .
-
+```
 #### Unhappy Path declined
-
+```
 curl -X POST http://localhost:8090/api/payments \
 -H "Content-Type: application/json" \
 -d '{
@@ -54,13 +55,13 @@ curl -X POST http://localhost:8090/api/payments \
   "amount": 100,
   "cvv": 123
 }' | jq .
-
+```
 #### unhappy path Get Payment Declined
-
+```
 curl -vvvv -X GET http://localhost:8090/api/payments/$id | jq .
-
+```
 #### Unhappy Path rejected (incorrect card number)
-
+```
 curl -X POST http://localhost:8090/api/payments \
 -H "Content-Type: application/json" \
 -d '{
@@ -71,9 +72,9 @@ curl -X POST http://localhost:8090/api/payments \
   "amount": 100,
   "cvv": 123
 }' | jq .
-
+```
 #### Unhappy Path upstream 503 from acquiring bank
-
+```
 curl -X POST http://localhost:8090/api/payments \
 -H "Content-Type: application/json" \
 -d '{
@@ -84,7 +85,7 @@ curl -X POST http://localhost:8090/api/payments \
   "amount": 100,
   "cvv": 123
 }' | jq .
-
+```
 ### Solution Commentary
 
 #### Integration tests
