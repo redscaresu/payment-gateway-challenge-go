@@ -88,35 +88,58 @@ curl -X POST http://localhost:8090/api/payments \
 ```
 ### Solution Commentary
 
+My solution creates a set of handlers and corresponding domain methods alongside a client.  The domain and client are mockable so as to be able to test each tier of the application in isolation, I also include some integration tests using mountebank.  Please note that mountebank needs to be running with a docker compose up before running the integration tests.
+
 #### Integration tests
 
-All of these main unhappy and happy paths are tested via integration held in /integration.
+Integration tests use the the mountebank docker container which will potentially take longer to run in a pipeline so I tested the main unhappy paths and happy paths but there is an argument to say we should aim for more test coverage via the integration tests because its testing the real code.
 
-Integration tests use the the mountebank docker container which will potentially take longer to run in a pipeline so I tested the main unhappy paths and happy paths but there is an argument to say we aim for more test coverage via the integration tests because its testing without mocks.
+In the case of the integration tests I tested 1 validation, 503 failure with the acquiring bank and also the happy POST and GET on a payment.  If I had more time I would of tested all of the validations.  In future I would like to create the container within the test.  In order to do this we would need to do some light refactoring and inject the url of the mounteabank into the api.New() in api.go.  We could then interact directly with the docker container libraries to spin up and down our container for each test.
 
-In the case of the integration tests I tested 1 validation, 503 failure with the acquiring bank and also the happy POST and GET on a payment.  I had more time I would of tested all of the validations.  At the moment the dev has to run docker compose and I had more time I would configure the mountebank to start and stop as part of the integration test.  In order to do this we would need to do some light refactoring and inject the url of the mounteabank into the api.New() in api.go we could then interact directly with the docker container libraries to spin up and down our container for each test.
+#### Handlers Implementation approach
 
-#### Handlers approach
+For the handlers implementation I split away as much of the business logic into the domain tier to keep the handlers as clean as possible.  Also for the case of the get I did a direct call to the storage layer from the handler, if we need more complex logic in time I would eventually shift it into the domain but for the purposes of YAGNI for the time being only the POST has a corresponding domain method.  The post does contain some more complicated logic so for the purposes of cleanliness I split out the code into the domain.
+
+The main thing the handlers do is check whether there is an error being returned or not from the domain and convert it into a public error.
+
+TODO: split out the error handling on the handlers into its own package, test them in isolation.
+
+TODO: discuss with product manager error shapes, with validation errors we could return the field the customer errored on, this is already logged on our system to help with future app support queries.
+
+#### Handlers Test approach
 
 For the tests I pretty much left the Get method as it was and tested the main paths.
 However for the POST tests I did not reuse the t.Run() style I find the t.Run() a bit hard to read and I have found issues with maintainability once you start trying to manage state against lots of tests so for this reason each test has its own state separate from one another.
 
-For the integration with the domain I inject the payments service so that I can mock exactly the output I want from the payments service into the handler.  If I had more time I would work on some test helpers to make this cleaner as the set up is repeated in lots of tests or implement a wrapper.  Also I am not sure if mocking was the right way to go here, maybe I should of just injected the mountebank client into the paymentservice so that the domain is real but the client is using the fake or a mocked client.
+For the integration with the domain I inject the payments service, this is so that I can mock exactly the output I want from the payments service into the handler.
 
-For the handlers implementation I split away as much of the business logic into the domain tier to keep the handlers as clean as possible.  Also for the case of the get I did a direct call to the storage layer from the handler, if we need more complex logic in time I would eventually shift it into the domain but for the purposes of YAGNI for the time being only the POST has a corresponding domain method.  The post does contain some more complicated logic so for the purposes of cleanliness I split out the code into the domain.
+TODO: work on some test helpers to clean the test code.
 
-The main thing the handlers do is check whether there is an error being returned or not and if there is make sure that the error is correctly handled.  If I had more time I would refactor this out and potentially create a package that matched the application errors to the corresponding public error that we wanted to show.
+TODO: review use of mocking, can we just inject mountebank directly into the client without mocking the payservice?
 
-#### Domain approach
+#### Domain Implementation approach
 
 I create a Domain that we are able to inject payment services into, the reason why I did this was so that we could inject mocks.
 
 Arguable YAGNI but I created a domain that can contain n services, for example if end up having to include a new service to integrate with in the future its just a simple case of adding an additional service to the Domain struct and creating the requisitive methods and interfaces.  It also allows us to split the implementation away from the interface of the services here.
 
-If I was to do this again I am not sure I would mock this, I would probably use the mountebank container instead and use the real domain.  I would set up the client so that it is injectable from main.go
+#### Domain Testing approach
 
-#### Client Approach
+For the domain testing we mock the client this is to allow us greater flexbility to test for all possible responses from the client we are integrating with.  We test all the validations and possible return values from the client to the domain.
 
-I include an interface so that we can mock the client but thinking about it I am not sure that is necessary we could have used the fake bank but at least now it means we can test all possible responses from the bank including errors like a 500.  I could of made this more generic by having a method called "DO" and then we could have passed in the method and the URL that way in future as we add more endpoints we can just call it with a different path as needed.  As it stands a new method would need to be created for each endpoint.
+TODO: make the validation testing more exhaustive for example on the card number we only test that the card number is too short not that it is too long.  Could be a good candidate for some table tests here.
 
-In terms of the tests at the moment I am using the testserver but I could of used the fake bank to test the client instead.  But I still think this is a good way to test the client as it is a simple client and we can test all the possible responses from the bank.  The tests are not exhaustive here if i had more time I would test all the possible responses from the bank.
+TODO: review use of mocks here, they could be replaced by mountebank.  Where mountebank does not support a response from the real acquiring bank we could extend the functionality of it to include the new response
+
+#### Client Implementation Approach
+
+I include an interface so that we can mock the client and test for all possible responses from the bank.
+
+TODO: Make the client generic, we could have a method called "DO" and then pass in the verb and url from the domain so we dont have create new methods for a new endpoint.
+
+#### Client Test Approach
+
+Using the testserver to fake responses from our acquiring bank and asserting that the errors are correctly handled.
+
+TODO: Review use of mocks here, potential to use mountebank and extend it where necessary.
+TODO: Greater test coverage on all the paths, the tests here are not exhaustive.

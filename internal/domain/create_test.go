@@ -65,10 +65,6 @@ func TestPostPayment_Authorized(t *testing.T) {
 }
 
 func TestPostPayment_InvalidCardNumber(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockClient := mocks.NewMockClient(ctrl)
-
 	postPayment := models.PostPaymentHandlerRequest{
 		CardNumber:  123,
 		ExpiryMonth: 4,
@@ -78,8 +74,7 @@ func TestPostPayment_InvalidCardNumber(t *testing.T) {
 		Cvv:         123,
 	}
 
-	repo := repository.NewPaymentsRepository()
-	domain := domain.NewPaymentServiceImpl(repo, mockClient)
+	domain := domain.NewPaymentServiceImpl(nil, nil)
 
 	var validationError *gatewayerrors.ValidationError
 	response, err := domain.Create(&postPayment)
@@ -94,9 +89,6 @@ func TestPostPayment_InvalidCardNumber(t *testing.T) {
 }
 
 func TestPostPayment_InvalidExpiryDate(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockClient := mocks.NewMockClient(ctrl)
 
 	postPayment := models.PostPaymentHandlerRequest{
 		CardNumber:  2222405343248877,
@@ -107,8 +99,7 @@ func TestPostPayment_InvalidExpiryDate(t *testing.T) {
 		Cvv:         123,
 	}
 
-	repo := repository.NewPaymentsRepository()
-	domain := domain.NewPaymentServiceImpl(repo, mockClient)
+	domain := domain.NewPaymentServiceImpl(nil, nil)
 
 	var validationError *gatewayerrors.ValidationError
 	response, err := domain.Create(&postPayment)
@@ -123,9 +114,6 @@ func TestPostPayment_InvalidExpiryDate(t *testing.T) {
 }
 
 func TestPostPayment_InvalidCurrency(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockClient := mocks.NewMockClient(ctrl)
 
 	postPayment := models.PostPaymentHandlerRequest{
 		CardNumber:  2222405343248877,
@@ -136,8 +124,7 @@ func TestPostPayment_InvalidCurrency(t *testing.T) {
 		Cvv:         123,
 	}
 
-	repo := repository.NewPaymentsRepository()
-	domain := domain.NewPaymentServiceImpl(repo, mockClient)
+	domain := domain.NewPaymentServiceImpl(nil, nil)
 
 	var validationError *gatewayerrors.ValidationError
 	response, err := domain.Create(&postPayment)
@@ -152,9 +139,6 @@ func TestPostPayment_InvalidCurrency(t *testing.T) {
 }
 
 func TestPostPayment_InvalidCVV(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockClient := mocks.NewMockClient(ctrl)
 
 	postPayment := models.PostPaymentHandlerRequest{
 		CardNumber:  2222405343248877,
@@ -165,8 +149,7 @@ func TestPostPayment_InvalidCVV(t *testing.T) {
 		Cvv:         1,
 	}
 
-	repo := repository.NewPaymentsRepository()
-	domain := domain.NewPaymentServiceImpl(repo, mockClient)
+	domain := domain.NewPaymentServiceImpl(nil, nil)
 
 	var validationError *gatewayerrors.ValidationError
 	response, err := domain.Create(&postPayment)
@@ -181,9 +164,6 @@ func TestPostPayment_InvalidCVV(t *testing.T) {
 }
 
 func TestPostPayment_InvalidAmount(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockClient := mocks.NewMockClient(ctrl)
 
 	postPayment := models.PostPaymentHandlerRequest{
 		CardNumber:  2222405343248877,
@@ -194,8 +174,7 @@ func TestPostPayment_InvalidAmount(t *testing.T) {
 		Cvv:         123,
 	}
 
-	repo := repository.NewPaymentsRepository()
-	domain := domain.NewPaymentServiceImpl(repo, mockClient)
+	domain := domain.NewPaymentServiceImpl(nil, nil)
 
 	var validationError *gatewayerrors.ValidationError
 	response, err := domain.Create(&postPayment)
