@@ -35,11 +35,11 @@ curl -X POST http://localhost:8090/api/payments \
 }' | jq .
 ```
 
-#### happy path Get Authorized Payment
+#### Happy path Get Authorized Payment
 ```
 curl -X GET http://localhost:8090/api/payments/$id | jq .
 ```
-#### unhappy path Get Payment does not exist
+#### Unhappy path Get Payment does not exist
 ```
 curl -vvvv -X GET http://localhost:8090/api/payments/foo | jq .
 ```
@@ -56,7 +56,7 @@ curl -X POST http://localhost:8090/api/payments \
   "cvv": 123
 }' | jq .
 ```
-#### unhappy path Get Payment Declined
+#### Unhappy path Get Payment Declined
 ```
 curl -vvvv -X GET http://localhost:8090/api/payments/$id | jq .
 ```
