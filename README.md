@@ -92,16 +92,16 @@ curl -X POST http://localhost:8090/api/payments \
 
 All of these main unhappy and happy paths are tested via integration held in /integration.
 
-Integration tests use the the fake acquiring bank as a docker container rather than mocks, they take longer to run so for the purposes of a quick pipeline I tested the main unhappy paths and happy paths but there is an argument to say we aim for more test coverage via the integration tests because its testing the real application.  Also because I want a TDD approach it is much easier to write code with an accompanying unit test and then layering on an integration test once the main code structures are there.
+Integration tests use the the mountebank docker container which will potentially take longer to run in a pipeline so I tested the main unhappy paths and happy paths but there is an argument to say we aim for more test coverage via the integration tests because its testing without mocks.
 
-In the case of the integration tests I tested 1 validation, 503 failure with the acquiring bank and also the happy POST and GET on a payment.  I had more time I would of tested all of the validations.  If I had more time I would configure the mountebank to start in the background of a integration test without having to manually start the container via docker compose.  In order to do this we would need to do some light refactoring and inject the url of the mounteabank into the api.New() in api.go we could then interact directly with the docker container libraries to spin up and down our container for each test.
+In the case of the integration tests I tested 1 validation, 503 failure with the acquiring bank and also the happy POST and GET on a payment.  I had more time I would of tested all of the validations.  At the moment the dev has to run docker compose and I had more time I would configure the mountebank to start and stop as part of the integration test.  In order to do this we would need to do some light refactoring and inject the url of the mounteabank into the api.New() in api.go we could then interact directly with the docker container libraries to spin up and down our container for each test.
 
 #### Handlers approach
 
 For the tests I pretty much left the Get method as it was and tested the main paths.
-However for the POST tests I did not reuse the t.Run() style I find the t.Run() a bit hard to read and I have found issues with maintainability once you start trying to manage state against lots of tests so for this reason each test has its own state separate from one another however this has resulted in a lot of duplicated code.
+However for the POST tests I did not reuse the t.Run() style I find the t.Run() a bit hard to read and I have found issues with maintainability once you start trying to manage state against lots of tests so for this reason each test has its own state separate from one another.
 
-For the integration with the domain I inject the payments service this is so that I can mock exactly the output I want from the payments service into the handler.  If I had more time I would work on some test helpers to make this cleaner as the set up is repeated in lots of tests or implementing an wrapper.  I am not sure if mocking was the right way to go here, maybe I should of just injected the mountebank client into the paymentservice so that the domain is real but the client is using the fake or a mocked client.
+For the integration with the domain I inject the payments service so that I can mock exactly the output I want from the payments service into the handler.  If I had more time I would work on some test helpers to make this cleaner as the set up is repeated in lots of tests or implement a wrapper.  Also I am not sure if mocking was the right way to go here, maybe I should of just injected the mountebank client into the paymentservice so that the domain is real but the client is using the fake or a mocked client.
 
 For the handlers implementation I split away as much of the business logic into the domain tier to keep the handlers as clean as possible.  Also for the case of the get I did a direct call to the storage layer from the handler, if we need more complex logic in time I would eventually shift it into the domain but for the purposes of YAGNI for the time being only the POST has a corresponding domain method.  The post does contain some more complicated logic so for the purposes of cleanliness I split out the code into the domain.
 
@@ -109,7 +109,7 @@ The main thing the handlers do is check whether there is an error being returned
 
 #### Domain approach
 
-I create a Domain that we are able to inject payment services into, the reason why I did this was so that we could inject mocked objects into the payment service.  These are not as strong as the integration tests but run faster.
+I create a Domain that we are able to inject payment services into, the reason why I did this was so that we could inject mocks.
 
 Arguable YAGNI but I created a domain that can contain n services, for example if end up having to include a new service to integrate with in the future its just a simple case of adding an additional service to the Domain struct and creating the requisitive methods and interfaces.  It also allows us to split the implementation away from the interface of the services here.
 
