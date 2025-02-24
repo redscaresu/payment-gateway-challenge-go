@@ -13,16 +13,6 @@ import (
 	"github.com/google/uuid"
 )
 
-/*
-
-I create a Domain that we are able to inject payment services into, the reason why I did this was so that we could inject mocked objects into the payment service.  These are not as strong as the integration tests but they do at least allow us in the future to include more exhaustive testing against each of the validations, if I had more time I would create table tests against each validation so its not just.
-
-Arguable YAGNI but I created a domain that can contain n services, for example if end up having to include a new service to integrate with in the future its just a simple case of adding an additional service to the Domain struct and creating the requisitive methods and interfaces.  It also allows us to split the implementation away from the interface of the services here.
-
-In future anymore calls to the mountebank just need to be added to the payments service interface and we can just easily mock it.
-
-*/
-
 type Domain struct {
 	PaymentService PaymentService
 }

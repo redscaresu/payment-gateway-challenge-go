@@ -22,14 +22,6 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-/*
-  I pretty much left the Get method as it was and tested the main paths.
-
-  However for the POST I refactor the style, I find the t.Run() a bit hard to read and I have found issues with maintainability once you start trying to manage state against lots of tests so for this reason each test has its own state separate from one another however this has resulted in a lot of duplicated code, if I had more time I would work on some test helpers to make this cleaner as the set up is repeated in lots of tests.
-
-  The payment service is mocked so I can test the handler for the precise things that it is expecting.
-*/
-
 func TestGetPaymentHandler(t *testing.T) {
 	savedPayment := models.PostPaymentResponse{
 		Id:                 "test-id",

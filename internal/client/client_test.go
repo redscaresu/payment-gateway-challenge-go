@@ -15,12 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-/*
- At the moment I am using the testserver but I could of used the fake bank to test the client instead.  But I still think this is a good way to test the client as it is a simple client and we can test all the possible responses from the bank but it would have been more realistic to use the fake bank.
-
- This is not exhaustive either, if i had more time I would test all the possible responses from the bank.
-*/
-
 func TestHTTPClient_PostBankPayment(t *testing.T) {
 	// Create a test server that returns a 200 OK response with a valid JSON body
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

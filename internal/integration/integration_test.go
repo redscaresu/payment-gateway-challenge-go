@@ -8,27 +8,17 @@ import (
 	"net/http"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/api"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/handlers"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
-	"github.com/docker/go-connections/nat"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"gotest.tools/assert"
 )
 
-/* integration tests use the real service rather than mocks, I limited these due to time constraints but also because they take longer to run than the unit tests so it could end up slowing are pipeline if we make these complete.
-As it stands now we test the happy path, 1 validation (in this case card number) and test when the upstream fails.
-*/
-
-func TestPostPaymentHandler_Integration(t *testing.T) {
-	ctx, cli, containerID := startMountebankContainer(t)
-	defer stopMountebankContainer(ctx, cli, containerID)
-
+func TestPostGetPaymentHandler_Integration(t *testing.T) {
+	ctx := context.Background()
 	api := api.New()
 
 	go func() {
@@ -92,9 +82,7 @@ func TestPostPaymentHandler_Integration(t *testing.T) {
 }
 
 func TestPostPaymentHandler_IntegrationCardNumberValidationError(t *testing.T) {
-	ctx, cli, containerID := startMountebankContainer(t)
-	defer stopMountebankContainer(ctx, cli, containerID)
-
+	ctx := context.Background()
 	api := api.New()
 
 	go func() {
@@ -130,9 +118,7 @@ func TestPostPaymentHandler_IntegrationCardNumberValidationError(t *testing.T) {
 }
 
 func TestPostPaymentHandler_IntegrationBankError(t *testing.T) {
-	ctx, cli, containerID := startMountebankContainer(t)
-	defer stopMountebankContainer(ctx, cli, containerID)
-
+	ctx := context.Background()
 	api := api.New()
 
 	go func() {
@@ -163,41 +149,6 @@ func TestPostPaymentHandler_IntegrationBankError(t *testing.T) {
 
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 	assert.Equal(t, "The acquiring bank is currently unavailable. Please try again later.", response.Message)
-}
-
-func startMountebankContainer(t *testing.T) (context.Context, *client.Client, string) {
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	require.NoError(t, err)
-
-	resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: "bbyars/mountebank:2.8.1",
-		ExposedPorts: map[nat.Port]struct{}{
-			"8085/tcp": {},
-		},
-	}, &container.HostConfig{
-		PortBindings: nat.PortMap{
-			"8080/tcp": []nat.PortBinding{
-				{
-					HostPort: "8080",
-				},
-			},
-		},
-	}, nil, nil, "")
-	require.NoError(t, err)
-
-	err = cli.ContainerStart(ctx, resp.ID, container.StartOptions{})
-	require.NoError(t, err)
-
-	// Wait for Mountebank to be ready
-	time.Sleep(5 * time.Second)
-
-	return ctx, cli, resp.ID
-}
-
-func stopMountebankContainer(ctx context.Context, cli *client.Client, containerID string) {
-	cli.ContainerStop(ctx, containerID, container.StopOptions{})
-	cli.ContainerRemove(ctx, containerID, container.RemoveOptions{})
 }
 
 func getLastFourCharacters(t *testing.T, i int) string {

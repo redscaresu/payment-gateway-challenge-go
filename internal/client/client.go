@@ -13,12 +13,6 @@ import (
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 )
 
-/*
-
-here I include an interface so that we can mock the client but thinking about it I am not sure that is necessary we could have used the fake bank but at least now it means we can test all possible responses from the bank including errors like a 500.  I could of made this more generic by having a method called "DO" and then we could have passed in the method and the URL that way in future as we add more endpoints we can just call it with a different path as needed.  As it stands a new method would need to be created for each endpoint.
-
-*/
-
 type Client interface {
 	PostBankPayment(request *models.PostPaymentBankRequest) (*models.PostPaymentBankResponse, error)
 }
