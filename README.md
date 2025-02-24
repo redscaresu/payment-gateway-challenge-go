@@ -92,13 +92,15 @@ My solution creates a set of handlers and corresponding domain methods alongside
 
 #### Integration tests
 
-Integration tests use the the mountebank docker container which will potentially take longer to run in a pipeline so I tested the main unhappy paths and happy paths but there is an argument to say we should aim for more test coverage via the integration tests because its testing the real code.
+Integration tests use the the mountebank docker container which will potentially take longer to run in a pipeline so I tested the main unhappy paths and happy paths but there is an argument to say we should aim for more test coverage via the integration tests because it is testing the real code.
 
-In the case of the integration tests I tested 1 validation, 503 failure with the acquiring bank and also the happy POST and GET on a payment.  If I had more time I would of tested all of the validations.  In future I would like to create the container within the test.  In order to do this we would need to do some light refactoring and inject the url of the mounteabank into the api.New() in api.go.  We could then interact directly with the docker container libraries to spin up and down our container for each test.
+In the case of the integration tests I tested 1 validation, 503 failure with the acquiring bank and also the happy POST and GET on a payment.  Given more time, I would test all of the validations.  
+
+TODO: I would like to create the container within the test.  In order to do this we would need to do some light refactoring and inject the url of the mounteabank into the api.New() in api.go.  We could then interact directly with the docker container libraries to spin up and down our container for each test.
 
 #### Handlers Implementation approach
 
-For the handlers implementation I split away as much of the business logic into the domain tier to keep the handlers as clean as possible.  Also for the case of the get I did a direct call to the storage layer from the handler, if we need more complex logic in time I would eventually shift it into the domain but for the purposes of YAGNI for the time being only the POST has a corresponding domain method.  The post does contain some more complicated logic so for the purposes of cleanliness I split out the code into the domain.
+For the handlers implementation I split away as much of the business logic into the domain tier to keep the handlers as clean as possible.  Also for the case of the GET I did a direct call to the storage layer from the handler.  If we need more complex logic in time I would eventually shift it into the domain but for the purposes of YAGNI for the time being only the POST has a corresponding domain method.  The post does contain some more complicated logic so for the purposes of cleanliness I split out the code into the domain.
 
 The main thing the handlers do is check whether there is an error being returned or not from the domain and convert it into a public error.
 
@@ -108,8 +110,8 @@ TODO: discuss with product manager error shapes, with validation errors we could
 
 #### Handlers Test approach
 
-For the tests I pretty much left the Get method as it was and tested the main paths.
-However for the POST tests I did not reuse the t.Run() style I find the t.Run() a bit hard to read and I have found issues with maintainability once you start trying to manage state against lots of tests so for this reason each test has its own state separate from one another.
+For the tests I pretty much left the GET method as it was and tested the main paths.
+However for the POST tests I did not reuse the t.Run() style. I find the t.Run() a bit hard to read and I have found issues with maintainability once you start trying to manage state against lots of tests.  So for this reason each test has its own state separate from one another.
 
 For the integration with the domain I inject the payments service, this is so that I can mock exactly the output I want from the payments service into the handler.
 
@@ -125,7 +127,7 @@ Arguable YAGNI but I created a domain that can contain n services, for example i
 
 #### Domain Testing approach
 
-For the domain testing we mock the client this is to allow us greater flexbility to test for all possible responses from the client we are integrating with.  We test all the validations and possible return values from the client to the domain.
+For the domain testing we mock the client, which allows us greater flexbility to test for all possible responses from the client we are integrating with.  We test all the validations and possible return values from the client to the domain.
 
 TODO: make the validation testing more exhaustive for example on the card number we only test that the card number is too short not that it is too long.  Could be a good candidate for some table tests here.
 
@@ -142,4 +144,5 @@ TODO: Make the client generic, we could have a method called "DO" and then pass 
 Using the testserver to fake responses from our acquiring bank and asserting that the errors are correctly handled.
 
 TODO: Review use of mocks here, potential to use mountebank and extend it where necessary.
+
 TODO: Greater test coverage on all the paths, the tests here are not exhaustive.
